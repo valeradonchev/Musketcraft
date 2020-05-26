@@ -3,7 +3,7 @@ import math
 from pygame.sprite import Group
 from infantry import Infantry
 from settings import I_SPEED, I_RANGE, I_MORALE, I_MORALE_MIN, I_SIGHT
-from settings import I_PANIC_TIME, I_GAPY, I_PANIC_BAY
+from settings import I_PANIC_TIME, I_GAPY, I_PANIC_BAY, I_FIRE_ANGLE
 from flag import Flag
 from pygame import time
 import pygame
@@ -107,8 +107,8 @@ class Company(Group):
         self.oldAngle = self.angle
         # add infantry to company
         for i in range(sizex * sizey):
-            self.add(Infantry(screen, angle, i, sizex, sizey, file1, file2, file3,
-                              self.coords))
+            self.add(Infantry(screen, angle, i, sizex, sizey, file1, file2,
+                              file3, self.coords))
         self.flag = Flag(screen, x, y, fileFlag, play)
         flags.append(self.flag)
         self.target = None
@@ -233,6 +233,7 @@ class Company(Group):
             self.stop(True)
             [infantry.aim(self.target, self.angle, self.allowShoot) for infantry in self]
         elif self.oldAngle != self.angle:
+        # elif abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
             if self.formed < self.size:
                 [infantry.form(self.angle, self.oldAngle, self.coords) for infantry in self]
             else:

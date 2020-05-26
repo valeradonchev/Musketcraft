@@ -6,7 +6,6 @@ from pygame.sprite import Sprite
 from pygame import time
 import random
 import numpy as np
-"Make Borodino"
 "Add multi control"
 "fix turning, not firing"
 "computer control"

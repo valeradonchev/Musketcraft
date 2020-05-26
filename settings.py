@@ -1,3 +1,4 @@
+import math
 """Store constants for use in game, not altered by code/user
 """
 # scale of game size
@@ -32,6 +33,8 @@ I_PANIC_TIME = 1000
 I_PANIC_BAY = 1.5
 # Percent chance to hit with bayonet
 I_BAY_CHANCE = 90
+# Angle (in radians) within which infantry will fire
+I_FIRE_ANGLE = math.pi / 12
 # flag button settings
 # size of button
 FB_SIZE = (120, 50)
