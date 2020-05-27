@@ -2,6 +2,7 @@ import pygame
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, SCALE
 from game_functions import check_events, update
 from company import Company
+from battery import Battery
 import math
 
 
@@ -43,9 +44,16 @@ def runGame():
                              'images/green_infantry_firing.png',
                              'images/green_infantry_bayonet.png',
                              'images/green_flag.png',)
+    blueCannon = scaleImage('images/blue_cannon.png',
+                            'images/blue_cannon_firing.png',
+                            'images/blue_flag.png')
+    greenCannon = scaleImage('images/green_cannon.png',
+                             'images/green_cannon_firing.png',
+                             'images/green_flag.png')
     flags = []
     blueCo = [Company(screen, 0, 200, 100, 5, 3, *blueImages, flags),
               Company(screen, 0, 200, 700, 5, 3, *blueImages, flags),
+              Battery(screen, 0, 200, 400, 3, *blueCannon, flags),
               ]
     greenCo = [Company(screen, math.pi, 1050, 100, 5, 3,
                        *greenImages, flags, False),

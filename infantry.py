@@ -7,13 +7,12 @@ from pygame import time
 import random
 import numpy as np
 "Add multi control"
-"fix turning, not firing"
 "computer control"
 "util module for simple math functions"
-"fix bayonet stutter"
 "add volley fire"
 "add constant for time scale: affects speed, fire rate, etc."
 
+"sort out values in Settings"
 "morale - true lifebar"
 "bayonet - high chance of enemy routing, attacker high chance to die if not"
 
@@ -30,9 +29,9 @@ class Infantry(Sprite):
     screen : pygame.Surface
         Surface on which Infantry is drawn
     ready : str
-        path to image of infantry when not shooting
+        path to image of Infantry when not shooting
     firing : str
-        path to image of infantry when shooting
+        path to image of Infantry when shooting
     angle : float
         angle in radians of Infantry to x-axis
     rect : pygame.rect.Rect
@@ -40,7 +39,7 @@ class Infantry(Sprite):
     shiftr : float, > 0
         distance Infantry keeps from center of Company when in formation
     shiftt : float
-        angle in radians to x-axis of line from Company center to infantry
+        angle in radians to x-axis of line from Company center to Infantry
     center : float 1-D numpy.ndarray [2], >= 0
         coords of Infantry as float to avoid rounding errors
     velocity : float 1-D numpy.ndarray [2]
@@ -49,14 +48,14 @@ class Infantry(Sprite):
         whether Infantry is in formation
     targetxy : float 1-D numpy.ndarray [2], >= 0
         coords where Infantry is moving to, target[0] = -1 when no target
-    target : Company or None
-        enemy Company which Infantry is aiming at
+    target : pygame.Group or None
+        enemy which Infantry is aiming at
     aimedOn : int, > 0
         time in milliseconds when Infantry aimed, 0 = no time saved
     firedOn : int, > 0
         time in milliseconds when Infantry fired, 0 = no time saved
     panicAngle : float
-        angle in radians in which Infatry moves when panicking
+        angle in radians in which Infantry moves when panicking
 
     Properties
     ----------
@@ -251,5 +250,6 @@ class Infantry(Sprite):
 
     def blitme(self):
         # draw Infantry on screen
+        self.rect = self.image.get_rect()
         self.rect.center = self.center
         self.screen.blit(self.image, self.rect)
