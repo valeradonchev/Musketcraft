@@ -3,7 +3,7 @@ import math
 from pygame.sprite import Group
 from cannon import Cannon
 from settings import C_SPEED, C_RANGE, C_MORALE, C_MORALE_MIN, C_SIGHT
-from settings import C_PANIC_TIME, C_PANIC_BAY, C_FIRE_ANGLE
+from settings import C_PANIC_TIME, C_PANIC_BAY, C_FIRE_ANGLE, C_GAPX
 from flag import Flag
 from pygame import time
 import pygame
@@ -92,7 +92,7 @@ class Battery(Group):
     """
 
     def __init__(self, screen, angle, x, y, sizex, file1, file2,
-                 fileFlag, flags, play=True):
+                 fileFlag, fileBall, team, flags, play=True):
         super().__init__()
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
@@ -101,20 +101,26 @@ class Battery(Group):
         self.oldAngle = self.angle
         # add infantry to company
         for i in range(sizex):
-            self.add(Cannon(screen, angle, i, sizex, file1, file2,
-                              self.coords))
+            self.add(Cannon(screen, angle, i, sizex, file1, file2, fileBall,
+                            team, self.coords))
         self.flag = Flag(screen, x, y, fileFlag, play)
         flags.append(self.flag)
         self.target = None
         self.maxSize = sizex
-        self.morale = C_MORALE
+        # self.morale = C_MORALE
         self.panicTime = 0
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
         # self.bayonetButton = Button(screen, "Bayonets")
         self.play = play
+        self.team = team
+        self.sizex = sizex
         # used to id object for testing, not meant to be seen/used
         self.id = file1
+
+    def unitInit(self, units):
+        self.units = units
+        [cannon.unitInit(units) for cannon in self]
 
     @property
     def size(self):
@@ -137,6 +143,26 @@ class Battery(Group):
     def allowShoot(self):
         # whether Battery will currently aim at targets
         return not self.moving or self.flag.attackMove
+
+    @property
+    def range(self):
+        # distance in pixels which Companies will set enemies as target
+        return (C_RANGE - (self.sizex // 2 + 1) * C_GAPX)
+
+    @property
+    def morale(self):
+        # update chance to flee
+        allySize = 0
+        enemySize = 0
+        for company in self.units:
+            if self.distance(company.coords) < C_SIGHT:
+                if company.team == self.team:
+                    allySize += company.size
+                else:
+                    enemySize += company.size
+        deathMorale = C_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
+        if allySize > 0:
+            return C_MORALE + deathMorale * enemySize / allySize
 
     def setSpeed(self, coords):
         # set speed to min of default, distance to coords
@@ -202,14 +228,14 @@ class Battery(Group):
         for target in group:
             if self.target is None:
                 seen = self.distance(target.coords) <= C_SIGHT
-                if seen and target.size > 0 and self.allowShoot:
+                if (seen and target.size > 0 and self.allowShoot and
+                    target.team != self.team):
                     self.target = target
                     if self.moving:
                         self.oldAngle = self.angle
                         self.stop()
         if self.target is None:
             return
-        # print(self.distance(self.target.coords))
         self.lookAt(self.target.coords)
         toTarget = self.distance(self.target.coords)
         dead = self.target.size == 0
@@ -219,17 +245,17 @@ class Battery(Group):
             for infantry in self:
                 infantry.aim(self.target, self.angle, self.allowShoot)
         elif (abs(self.oldAngle - self.angle) > C_FIRE_ANGLE or
-              (toTarget > C_RANGE and self.oldAngle != self.angle)):
+              (toTarget > self.range and self.oldAngle != self.angle)):
             if self.formed < self.size:
                 for infantry in self:
                     infantry.form(self.angle, self.oldAngle, self.coords)
             else:
                 self.oldAngle = self.angle
                 self.stop(True)
-        elif toTarget > C_RANGE:
+        elif toTarget > self.range:
             self.flag.attackMove = True
             self.setSpeed(self.target.coords)
-            [infantry.setSpeed(self.speed) for infantry in self]
+            [cannon.setSpeed(self.speed) for cannon in self]
         else:
             self.stop(True)
             for infantry in self:
@@ -244,16 +270,6 @@ class Battery(Group):
         if random.randint(0, 99) < morale and self.panicTime == 0:
             [infantry.startPanic() for infantry in self]
             self.panicTime = time.get_ticks()
-
-    def updateMorale(self, allies, enemies):
-        # update chance to flee
-        allySize = sum([company.size for company in allies
-                        if self.distance(company.coords) < C_SIGHT])
-        enemySize = sum([company.size for company in enemies
-                         if self.distance(company.coords) < C_SIGHT])
-        deathMorale = C_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
-        if allySize > 0:
-            self.morale = C_MORALE + deathMorale * enemySize / allySize
 
     def orders(self):
         # give orders other than move for Battery

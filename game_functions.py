@@ -14,7 +14,7 @@ def check_events():
             sys.exit()
 
 
-def update(screen, blueInfantry, greenInfantry, flags):
+def update(screen, units, flags):
     """ run the methods of Companies
 
     Parameters
@@ -41,23 +41,15 @@ def update(screen, blueInfantry, greenInfantry, flags):
     """
     # redraw screen
     screen.fill(BG_COLOR)
-    # updating morale
-    [unit.updateMorale(blueInfantry, greenInfantry) for unit in blueInfantry]
-    [unit.updateMorale(greenInfantry, blueInfantry) for unit in greenInfantry]
     # targeting
-    [company.aim(greenInfantry) for company in blueInfantry]
-    [company.aim(blueInfantry) for company in greenInfantry]
+    [company.aim(units) for company in units]
     # process logic for moving
-    [company.follow(flags) for company in blueInfantry]
-    [company.follow(flags) for company in greenInfantry]
+    [company.follow(flags) for company in units]
     # give orders
-    [company.orders() for company in blueInfantry]
-    [company.orders() for company in greenInfantry]
+    [company.orders() for company in units]
     # move companies
-    [company.update() for company in blueInfantry]
-    [company.update() for company in greenInfantry]
+    [company.update() for company in units]
     # update images
-    [company.blitme() for company in blueInfantry]
-    [company.blitme() for company in greenInfantry]
+    [company.blitme() for company in units]
     # draw screen
     pygame.display.flip()

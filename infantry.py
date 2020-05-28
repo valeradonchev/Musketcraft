@@ -6,6 +6,8 @@ from pygame.sprite import Sprite
 from pygame import time
 import random
 import numpy as np
+"make morale check when shot at, not on death"
+
 "Add multi control"
 "computer control"
 "util module for simple math functions"

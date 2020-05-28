@@ -27,9 +27,9 @@ C_SPEED = .2 * SCALE  # speed of cannon
 C_AIM = 2000  # aim time of cannon in millisec
 C_END_FIRE = 800  # time to end fire animation of cannon
 C_LOAD = 5000  # reload time of cannon in millisec
-C_RANGE = 700 * SCALE  # range of cannon
+C_RANGE = 1400 * SCALE  # range of cannon
 C_SIGHT = 750 * SCALE  # sight range of cannon
-# variation in radians of projectile trajectory
+C_ACCURACY = math.pi / 6  # variation in radians of projectile trajectory
 C_DELAY = 300  # +/- range of random firing dealy
 C_MORALE = -10  # base morale - percent chance to flee
 C_MORALE_MIN = 25  # max percent chance to flee
@@ -37,6 +37,8 @@ C_PANIC_TIME = 1000  # Time to panic
 C_PANIC_BAY = 1.5  # Factor of chance to panic from bayonets
 C_FIRE_ANGLE = math.pi / 12
 # Angle (in radians) within which cannon will fire
+# Cannonball settings
+CB_SPEED = 5 * SCALE  # speed of Cannonball
 # flag button settings
 FB_SIZE = (120, 50)  # size of button
 FB_COLOR = (150, 0, 0)  # color of button

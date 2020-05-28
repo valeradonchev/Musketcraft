@@ -98,7 +98,7 @@ class Company(Group):
     """
 
     def __init__(self, screen, angle, x, y, sizex, sizey, file1, file2, file3,
-                 fileFlag, flags, play=True):
+                 fileFlag, team, flags, play=True):
         super().__init__()
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
@@ -114,15 +114,19 @@ class Company(Group):
         self.target = None
         self.maxSize = sizex * sizey
         self.sizey = sizey
-        self.morale = I_MORALE
         self.panicTime = 0
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
         self.bayonetButton = Button(screen, "Bayonets")
         self.bayonets = False
         self.play = play
+        self.team = team
+        self.units = []
         # used to id object for testing, not meant to be seen/used
         self.id = file1
+
+    def unitInit(self, units):
+        self.units = units
 
     @property
     def size(self):
@@ -152,6 +156,22 @@ class Company(Group):
         if self.bayonets:
             return I_SPEED
         return (I_RANGE - (self.sizey // 2 + 1) * I_GAPY)
+
+    @property
+    def morale(self):
+        # update chance to flee
+        allySize = 0
+        enemySize = 0
+        for company in self.units:
+            if self.distance(company.coords) < I_SIGHT:
+                if company.team == self.team:
+                    allySize += company.size
+                else:
+                    enemySize += company.size
+        deathMorale = I_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
+        if allySize > 0:
+            return I_MORALE + deathMorale * enemySize / allySize
+        return 0
 
     def setSpeed(self, coords):
         # set speed to min of default, distance to coords
@@ -217,14 +237,14 @@ class Company(Group):
         for target in group:
             if self.target is None:
                 seen = self.distance(target.coords) <= I_SIGHT
-                if seen and target.size > 0 and self.allowShoot:
+                if (seen and target.size > 0 and self.allowShoot and
+                    target.team != self.team):
                     self.target = target
                     if self.moving:
                         self.oldAngle = self.angle
                         self.stop()
         if self.target is None:
             return
-        # print(self.distance(self.target.coords))
         self.lookAt(self.target.coords)
         toTarget = self.distance(self.target.coords)
         dead = self.target.size == 0
@@ -260,15 +280,14 @@ class Company(Group):
             [infantry.startPanic() for infantry in self]
             self.panicTime = time.get_ticks()
 
-    def updateMorale(self, allies, enemies):
-        # update chance to flee
-        allySize = sum([company.size for company in allies
-                        if self.distance(company.coords) < I_SIGHT])
-        enemySize = sum([company.size for company in enemies
-                         if self.distance(company.coords) < I_SIGHT])
-        deathMorale = I_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
-        if allySize > 0:
-            self.morale = I_MORALE + deathMorale * enemySize / allySize
+    def getShelled(self, ball):
+        # kill own Infantry from Cannon roundshot
+        for unit in self:
+            if unit.rect.colliderect(ball.rect):
+                self.remove(unit)
+        if random.randint(0, 99) < self.morale and self.panicTime == 0:
+            [infantry.startPanic() for infantry in self]
+            self.panicTime = time.get_ticks()
 
     def orders(self):
         # give orders other than move for Company

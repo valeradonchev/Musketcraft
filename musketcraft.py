@@ -8,7 +8,7 @@ import math
 
 def scaleImage(*paths, scale=1):
     """convert image file location list into scaled image list
-
+rdddq
     Resizes images by SCALE constant multiplier
     """
     images = []
@@ -46,24 +46,27 @@ def runGame():
                              'images/green_flag.png',)
     blueCannon = scaleImage('images/blue_cannon.png',
                             'images/blue_cannon_firing.png',
-                            'images/blue_flag.png')
+                            'images/blue_flag.png',
+                            'images/cannonball.png',)
     greenCannon = scaleImage('images/green_cannon.png',
                              'images/green_cannon_firing.png',
-                             'images/green_flag.png')
+                             'images/green_flag.png',
+                             'images/cannonball.png',)
     flags = []
-    blueCo = [Company(screen, 0, 200, 100, 5, 3, *blueImages, flags),
-              Company(screen, 0, 200, 700, 5, 3, *blueImages, flags),
-              Battery(screen, 0, 200, 400, 3, *blueCannon, flags),
-              ]
-    greenCo = [Company(screen, math.pi, 1050, 100, 5, 3,
-                       *greenImages, flags, False),
-               Company(screen, math.pi, 1010, 600, 5, 3,
-                       *greenImages, flags, False),
-               ]
+    units = [Company(screen, 0, 700, 100, 5, 3, *blueImages, "blue", flags),
+             Company(screen, 0, 200, 700, 5, 3, *blueImages, "blue", flags),
+             Battery(screen, 0, 900, 400, 3, *blueCannon, "blue", flags),
+             Company(screen, math.pi, 1050, 100, 5, 3,
+                     *greenImages, "green", flags, False),
+             Company(screen, math.pi, 1010, 600, 5, 3,
+                     *greenImages, "green", flags, False),
+             ]
+
+    [company.unitInit(units) for company in units]
     # main loop
     while True:
         check_events()
-        test = update(screen, blueCo, greenCo, flags)
+        test = update(screen, units, flags)
         if(test == "restart"):
             break
 

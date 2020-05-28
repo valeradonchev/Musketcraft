@@ -1,11 +1,12 @@
 from settings import C_GAPX, C_SPEED, C_RANGE, C_AIM, C_LOAD
-from settings import C_END_FIRE, C_DELAY
+from settings import C_END_FIRE, C_DELAY, C_ACCURACY
 import pygame
 import math
 from pygame.sprite import Sprite
 from pygame import time
 import random
 import numpy as np
+from cannonball import Cannonball
 
 
 class Cannon(Sprite):
@@ -88,12 +89,13 @@ class Cannon(Sprite):
 
     """
 
-    def __init__(self, screen, angle, count, sizex, file1, file2,
-                 coords):
+    def __init__(self, screen, angle, count, sizex, file1, file2, file3,
+                 team, coords):
         super().__init__()
         self.screen = screen
         self.ready = file1
         self.firing = file2
+        self.ball = file3
         self.costume = self.ready
         self.angle = angle
         self.rect = self.image.get_rect()
@@ -114,6 +116,11 @@ class Cannon(Sprite):
         self.aimedOn = 0
         self.firedOn = 0
         self.panicAngle = 0
+        self.shot = None
+        self.team = team
+
+    def unitInit(self, units):
+        self.units = units
 
     @property
     def relatCoords(self):
@@ -198,6 +205,8 @@ class Cannon(Sprite):
         # move Cannon based on speed, fire at target if possible
         self.center += self.velocity
         self.fire(allowShoot)
+        if self.shot is not None:
+            self.shot.update(self)
 
     def panic(self):
         # move Cannon in randomly determined direction while panicking
@@ -221,7 +230,9 @@ class Cannon(Sprite):
             self.costume = self.firing
             self.firedOn = time.get_ticks()
             self.aimedOn = 0
-            self.target.getHit()
+            angle = self.angle + random.uniform(-C_ACCURACY, C_ACCURACY)
+            self.shot = Cannonball(self.screen, angle, self.ball,
+                                   np.copy(self.center), self.team, self.units)
         if self.firedOn != 0 and time.get_ticks() - self.firedOn > C_END_FIRE:
             self.costume = self.ready
         if self.firedOn != 0 and time.get_ticks() - self.firedOn > C_LOAD:
@@ -232,3 +243,5 @@ class Cannon(Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = self.center
         self.screen.blit(self.image, self.rect)
+        if self.shot is not None:
+            self.shot.blitme()
