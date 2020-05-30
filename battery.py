@@ -3,13 +3,15 @@ import math
 from pygame.sprite import Group
 from cannon import Cannon
 from settings import C_SPEED, C_RANGE, C_MORALE, C_MORALE_MIN, C_SIGHT
-from settings import C_PANIC_TIME, C_PANIC_BAY, C_FIRE_ANGLE, C_GAPX
+from settings import C_PANIC_TIME, C_PANIC_BAY, C_FIRE_ANGLE, C_GAPY
+from settings import CC_GAPX, CC_GAPY
 from flag import Flag
 from pygame import time
 import pygame
 import random
 import numpy as np
 from button import Button
+from cannoneer import Cannoneer
 
 "click on any Cannon - bring up orders: canister, round shot, etc."
 
@@ -92,7 +94,7 @@ class Battery(Group):
     """
 
     def __init__(self, screen, angle, x, y, sizex, file1, file2,
-                 fileFlag, fileBall, team, flags, play=True):
+                 fileFlag, fileBall, fileHuman, team, flags, play=True):
         super().__init__()
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
@@ -100,14 +102,27 @@ class Battery(Group):
         self.angle = angle
         self.oldAngle = self.angle
         # add infantry to company
+        self.cannons = []
         for i in range(sizex):
-            self.add(Cannon(screen, angle, i, sizex, file1, file2, fileBall,
-                            team, self.coords))
+            """ x displacement from center of Battery based on count
+            shiftx increases with count with a period of sizex, creating
+            a row of soldiers with a length of sizex
+            """
+            shifty = C_GAPY * ((i % sizex) - sizex // 2)
+            shiftx = 0
+            self.cannons.append(Cannon(screen, angle, shiftx, shifty,
+                                       file1, file2, fileBall, team,
+                                       self.coords))
+            for i in range(4):
+                print()
+                shiftxCC = shiftx + CC_GAPX * (-1) ** i
+                shiftyCC = shifty + CC_GAPY * (-1) ** (i // 2)
+                self.add(Cannoneer(screen, angle, shiftxCC, shiftyCC,
+                                   fileHuman, self.coords))
         self.flag = Flag(screen, x, y, fileFlag, play)
         flags.append(self.flag)
         self.target = None
         self.maxSize = sizex
-        # self.morale = C_MORALE
         self.panicTime = 0
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
@@ -120,17 +135,19 @@ class Battery(Group):
 
     def unitInit(self, units):
         self.units = units
-        [cannon.unitInit(units) for cannon in self]
+        [cannon.unitInit(units) for cannon in self.cannons]
 
     @property
     def size(self):
         # number of Cannons currently contained in Battery
-        return len(self.sprites())
+        return len(self) + len(self.cannons)
 
     @property
     def formed(self):
         # count of Cannons in formation
-        return sum([infantry.formed for infantry in self])
+        cannonFormed = sum([cannon.formed for cannon in self.cannons])
+        manFormed = sum([man.formed for man in self])
+        return cannonFormed + manFormed
 
     @property
     def velocity(self):
@@ -147,7 +164,7 @@ class Battery(Group):
     @property
     def range(self):
         # distance in pixels which Companies will set enemies as target
-        return (C_RANGE - (self.sizex // 2 + 1) * C_GAPX)
+        return (C_RANGE - (self.sizex // 2 + 1) * C_GAPY)
 
     @property
     def morale(self):
@@ -176,18 +193,21 @@ class Battery(Group):
         # stop Battery, Cannons
         self.speed = 0
         if self.moving or moving:
-            [infantry.stop() for infantry in self]
+            [cannon.stop() for cannon in self.cannons]
+            [man.stop() for man in self]
         self.moving = False
 
     def update(self):
         # move Battery, update Cannons, panic if necessary
         if self.panicTime != 0:
-            [infantry.panic() for infantry in self]
+            [cannon.panic() for cannon in self.cannons]
+            [man.panic() for man in self]
             if time.get_ticks() - self.panicTime > C_PANIC_TIME:
                 self.empty()
         else:
             self.coords += self.velocity
-            [cannon.update(self.allowShoot) for cannon in self]
+            [cannon.update(self.allowShoot) for cannon in self.cannons]
+            [man.update() for man in self]
 
     def follow(self, flags):
         # move Battery and Cannons to flag
@@ -202,13 +222,16 @@ class Battery(Group):
             if self.formed < self.size:
                 self.moving = True
                 self.lookAt(flagCoords)
-                [infantry.form(self.angle, self.oldAngle, self.coords)
-                 for infantry in self]
+                [cannon.form(self.angle, self.oldAngle, self.coords)
+                 for cannon in self.cannons]
+                [man.form(self.angle, self.oldAngle, self.coords)
+                 for man in self]
             else:
                 self.setSpeed(flagCoords)
                 if self.speed == C_SPEED:
                     self.lookAt(flagCoords)
-                [infantry.setSpeed(self.speed) for infantry in self]
+                [cannon.setSpeed(self.speed) for cannon in self.cannons]
+                [man.setSpeed(self.speed) for man in self]
         elif self.moving:
             self.oldAngle = self.angle
             self.stop()
@@ -242,24 +265,27 @@ class Battery(Group):
         if toTarget > C_SIGHT or dead or not self.allowShoot:
             self.target = None
             self.stop(True)
-            for infantry in self:
-                infantry.aim(self.target, self.angle, self.allowShoot)
+            for cannon in self.cannons:
+                cannon.aim(self.target, self.angle, self.allowShoot)
         elif (abs(self.oldAngle - self.angle) > C_FIRE_ANGLE or
               (toTarget > self.range and self.oldAngle != self.angle)):
             if self.formed < self.size:
-                for infantry in self:
-                    infantry.form(self.angle, self.oldAngle, self.coords)
+                for cannon in self.cannons:
+                    cannon.form(self.angle, self.oldAngle, self.coords)
+                for man in self:
+                    man.form(self.angle, self.oldAngle, self.coords)
             else:
                 self.oldAngle = self.angle
                 self.stop(True)
         elif toTarget > self.range:
             self.flag.attackMove = True
             self.setSpeed(self.target.coords)
-            [cannon.setSpeed(self.speed) for cannon in self]
+            [cannon.setSpeed(self.speed) for cannon in self.cannons]
+            [man.setSpeed(self.speed) for man in self]
         else:
             self.stop(True)
-            for infantry in self:
-                infantry.aim(self.target, self.angle, self.allowShoot)
+            for cannon in self.cannons:
+                cannon.aim(self.target, self.angle, self.allowShoot)
 
     def getHit(self, bayonet=False):
         # kill own Cannons when shot
@@ -268,7 +294,8 @@ class Battery(Group):
         self.remove(random.choice(self.sprites()))
         morale = self.morale * C_PANIC_BAY ** bayonet
         if random.randint(0, 99) < morale and self.panicTime == 0:
-            [infantry.startPanic() for infantry in self]
+            [cannon.startPanic() for cannon in self.cannons]
+            [man.startPanic() for man in self]
             self.panicTime = time.get_ticks()
 
     def orders(self):
@@ -280,8 +307,8 @@ class Battery(Group):
         mouse = pygame.mouse.get_pos()
         click = pygame.mouse.get_pressed()[0]
         if (click and self.showOrders == 0 and
-            any([cannon.rect.collidepoint(mouse) for cannon in self]) and
-            all([not rect.collidepoint(mouse) for rect in cover])):
+            any([cannon.rect.collidepoint(mouse) for cannon in self.cannons])
+            and all([not rect.collidepoint(mouse) for rect in cover])):
             self.showOrders = 1
         if self.showOrders == 1 and not click:
             self.showOrders = 2
@@ -295,7 +322,8 @@ class Battery(Group):
 
     def blitme(self):
         # print elements of Battery
-        [infantry.blitme() for infantry in self]
+        [man.blitme() for man in self]
+        [cannon.blitme() for cannon in self.cannons]
         if self.size > 0:
             self.flag.blitme()
         # if self.showOrders > 1:

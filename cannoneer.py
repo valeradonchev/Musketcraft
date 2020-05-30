@@ -1,5 +1,4 @@
-from settings import I_GAPX, I_GAPY, I_SPEED, I_RANGE, I_AIM, I_LOAD, I_CHANCE
-from settings import I_END_FIRE, I_DELAY, I_BAY_CHANCE
+from settings import I_SPEED, I_GAPX, I_GAPY
 import pygame
 import math
 from pygame.sprite import Sprite
@@ -7,19 +6,9 @@ from pygame import time
 import random
 import numpy as np
 
-"Add multi control"
-"computer control"
-"util module for simple math functions"
-"add volley fire"
-"add constant for time scale: affects speed, fire rate, etc."
 
-"sort out values in Settings"
-"morale - true lifebar"
-"bayonet - high chance of enemy routing, attacker high chance to die if not"
-
-
-class Infantry(Sprite):
-    """Foot soldier within a company
+class Cannoneer(Sprite):
+    """Soldier manning Cannon in Battery
 
     Parents
     -------
@@ -98,24 +87,13 @@ class Infantry(Sprite):
 
     """
 
-    def __init__(self, screen, angle, count, sizex, sizey, file1, file2, file3,
-                 coords):
+    def __init__(self, screen, angle, shiftx, shifty, file, coords):
         super().__init__()
         self.screen = screen
-        self.ready = file1
-        self.firing = file2
-        self.bayonet = file3
+        self.ready = file
         self.costume = self.ready
         self.angle = angle
         self.rect = self.image.get_rect()
-        """ x, y displacement from center of Company based on count
-        shiftx increases with count with a period of sizex, creating
-        a row of soldiers with a length of sizex
-        shifty increases when count increases by sizex, starting
-        a new row of soldiers every sizex soldiers
-        """
-        shifty = I_GAPY * ((count % sizey) - sizey // 2)
-        shiftx = I_GAPX * ((count // sizey) - sizex // 2)
         self.shiftr = math.hypot(shiftx, shifty)
         self.shiftt = math.atan2(shifty, shiftx)
         self.rect.center = coords + self.relatCoords
@@ -123,9 +101,6 @@ class Infantry(Sprite):
         self.velocity = np.array([0, 0], dtype=float)
         self.formed = False
         self.targetxy = np.array([-1, -1], dtype=float)
-        self.target = None
-        self.aimedOn = 0
-        self.firedOn = 0
         self.panicAngle = 0
 
     @property
@@ -189,28 +164,9 @@ class Infantry(Sprite):
         self.formed = False
         self.targetxy = np.array([-1, -1])
 
-    def aim(self, target, angle=0, allowShoot=False):
-        # set target, point at target
-        if target is None:
-            self.target = None
-            self.angle = angle
-            return
-        if self.target is None:
-            if self.distance(target.coords) <= I_RANGE and target.size > 0:
-                self.target = target
-        if self.target is not None:
-            self.lookAt(self.target.coords)
-            toTarget = self.distance(self.target.coords)
-            if toTarget > I_RANGE or not allowShoot:
-                self.target = None
-                self.angle = angle
-            else:
-                self.lookAt(self.target.coords)
-
     def update(self, allowShoot=False, bayonet=False):
         # move Infantry based on speed, fire at target if possible
         self.center += self.velocity
-        self.fire(allowShoot, bayonet)
 
     def panic(self):
         # move Infantry in randomly determined direction while panicking
@@ -223,31 +179,6 @@ class Infantry(Sprite):
         # set direction Infantry moves away in when panicking
         self.aim(None)
         self.panicAngle = self.angle + math.pi * random.uniform(.75, 1.25)
-
-    def fire(self, allowShoot=False, bayonet=False):
-        # fire when target isn't None, reload after firing
-        if self.target is None or not allowShoot:
-            self.aimedOn = 0
-        if self.aimedOn == 0 and self.target is not None and self.firedOn == 0:
-            self.aimedOn = time.get_ticks() + random.randint(-I_DELAY, I_DELAY)
-        if self.aimedOn != 0 and time.get_ticks() - self.aimedOn > I_AIM:
-            self.costume = self.firing
-            if bayonet:
-                self.costume = self.bayonet
-            self.firedOn = time.get_ticks()
-            self.aimedOn = 0
-            if self.distance(self.target.coords) > I_SPEED:
-                chance = (I_CHANCE * I_RANGE /
-                          self.distance(self.target.coords) *
-                          max(1, self.target.size // 3))
-            else:
-                chance = I_BAY_CHANCE
-            if random.randint(0, 99) < chance:
-                self.target.getHit(bayonet)
-        if self.firedOn != 0 and time.get_ticks() - self.firedOn > I_END_FIRE:
-            self.costume = self.ready
-        if self.firedOn != 0 and time.get_ticks() - self.firedOn > I_LOAD:
-            self.firedOn = 0
 
     def blitme(self):
         # draw Infantry on screen

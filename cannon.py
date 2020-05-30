@@ -1,4 +1,4 @@
-from settings import C_GAPX, C_SPEED, C_RANGE, C_AIM, C_LOAD
+from settings import C_SPEED, C_RANGE, C_AIM, C_LOAD
 from settings import C_END_FIRE, C_DELAY, C_ACCURACY
 import pygame
 import math
@@ -89,8 +89,8 @@ class Cannon(Sprite):
 
     """
 
-    def __init__(self, screen, angle, count, sizex, file1, file2, file3,
-                 team, coords):
+    def __init__(self, screen, angle, shiftx, shifty, file1, file2,
+                 file3, team, coords):
         super().__init__()
         self.screen = screen
         self.ready = file1
@@ -99,12 +99,6 @@ class Cannon(Sprite):
         self.costume = self.ready
         self.angle = angle
         self.rect = self.image.get_rect()
-        """ x displacement from center of Battery based on count
-        shiftx increases with count with a period of sizex, creating
-        a row of soldiers with a length of sizex
-        """
-        shifty = C_GAPX * ((count % sizex) - sizex // 2)
-        shiftx = 0
         self.shiftr = math.hypot(shiftx, shifty)
         self.shiftt = math.atan2(shifty, shiftx)
         self.rect.center = coords + self.relatCoords

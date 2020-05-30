@@ -47,18 +47,20 @@ def runGame():
     blueCannon = scaleImage('images/blue_cannon.png',
                             'images/blue_cannon_firing.png',
                             'images/blue_flag.png',
-                            'images/cannonball.png',)
+                            'images/cannonball.png',
+                            'images/blue_human.png')
     greenCannon = scaleImage('images/green_cannon.png',
                              'images/green_cannon_firing.png',
                              'images/green_flag.png',
-                             'images/cannonball.png',)
+                             'images/cannonball.png',
+                             'images/green_human.png')
     flags = []
-    units = [Company(screen, 0, 700, 100, 5, 3, *blueImages, "blue", flags),
-             Company(screen, 0, 200, 700, 5, 3, *blueImages, "blue", flags),
+    units = [Company(screen, 0, 700, 100, 3, 5, *blueImages, "blue", flags),
+             Company(screen, 0, 200, 700, 3, 5, *blueImages, "blue", flags),
              Battery(screen, 0, 900, 400, 3, *blueCannon, "blue", flags),
-             Company(screen, math.pi, 1050, 100, 5, 3,
+             Company(screen, math.pi, 1050, 100, 3, 5,
                      *greenImages, "green", flags, False),
-             Company(screen, math.pi, 1010, 600, 5, 3,
+             Company(screen, math.pi, 1010, 600, 3, 5,
                      *greenImages, "green", flags, False),
              ]
 

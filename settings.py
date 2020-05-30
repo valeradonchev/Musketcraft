@@ -4,8 +4,8 @@ import math
 # scale of game elements
 SCALE = .3
 # infantry settings
-I_GAPY = 30 * SCALE  # vertical distance between centers of infantry
 I_GAPX = 50 * SCALE  # horizontal distance between centers of infantry
+I_GAPY = 70 * SCALE  # vertical distance between centers of infantry
 I_SPEED = 1 * SCALE  # speed of infantry
 I_AIM = 1000  # aim time of infantry in millisec
 I_END_FIRE = 400  # time to end fire animation of infantry
@@ -22,7 +22,7 @@ I_BAY_CHANCE = 90  # Percent chance to hit with bayonet
 I_FIRE_ANGLE = math.pi / 12
 # Angle (in radians) within which infantry will fire
 # cannon settings
-C_GAPX = 250 * SCALE  # horizontal distance between centers of cannon
+C_GAPY = 250 * SCALE  # vertical distance between centers of cannon
 C_SPEED = .2 * SCALE  # speed of cannon
 C_AIM = 2000  # aim time of cannon in millisec
 C_END_FIRE = 800  # time to end fire animation of cannon
@@ -37,6 +37,9 @@ C_PANIC_TIME = 1000  # Time to panic
 C_PANIC_BAY = 1.5  # Factor of chance to panic from bayonets
 C_FIRE_ANGLE = math.pi / 12
 # Angle (in radians) within which cannon will fire
+# Cannoneer settings
+CC_GAPX = 100 * SCALE  # horizontal distance between Cannoneer and Cannon
+CC_GAPY = 80 * SCALE  # vertical distance between Cannoneer and Cannon
 # Cannonball settings
 CB_SPEED = 5 * SCALE  # speed of Cannonball
 # flag button settings
