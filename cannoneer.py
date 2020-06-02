@@ -170,14 +170,12 @@ class Cannoneer(Sprite):
 
     def panic(self):
         # move Infantry in randomly determined direction while panicking
-        self.aim(None)
         self.angle = self.panicAngle
         self.setSpeed(I_SPEED)
         self.update()
 
     def startPanic(self):
         # set direction Infantry moves away in when panicking
-        self.aim(None)
         self.panicAngle = self.angle + math.pi * random.uniform(.75, 1.25)
 
     def blitme(self):

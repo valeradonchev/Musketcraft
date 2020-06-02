@@ -4,7 +4,7 @@ from pygame.sprite import Group
 from cannon import Cannon
 from settings import C_SPEED, C_RANGE, C_MORALE, C_MORALE_MIN, C_SIGHT
 from settings import C_PANIC_TIME, C_PANIC_BAY, C_FIRE_ANGLE, C_GAPY
-from settings import CC_GAPX, CC_GAPY
+from settings import CC_GAPX, CC_GAPY, C_MEN_PER, C_MIN_RANGE
 from flag import Flag
 from pygame import time
 import pygame
@@ -113,7 +113,7 @@ class Battery(Group):
             self.cannons.append(Cannon(screen, angle, shiftx, shifty,
                                        file1, file2, fileBall, team,
                                        self.coords))
-            for i in range(4):
+            for i in range(C_MEN_PER):
                 print()
                 shiftxCC = shiftx + CC_GAPX * (-1) ** i
                 shiftyCC = shifty + CC_GAPY * (-1) ** (i // 2)
@@ -139,7 +139,12 @@ class Battery(Group):
 
     @property
     def size(self):
-        # number of Cannons currently contained in Battery
+        # number of Cannoneers currently contained in Battery
+        return len(self)
+
+    @property
+    def cannonSize(self):
+        # number of Cannoneers and Cannons in Battery
         return len(self) + len(self.cannons)
 
     @property
@@ -204,9 +209,13 @@ class Battery(Group):
             [man.panic() for man in self]
             if time.get_ticks() - self.panicTime > C_PANIC_TIME:
                 self.empty()
+                self.cannons = []
         else:
             self.coords += self.velocity
-            [cannon.update(self.allowShoot) for cannon in self.cannons]
+            i = math.ceil(self.size / C_MEN_PER)
+            for cannon in self.cannons:
+                cannon.update(i, self.allowShoot)
+                i -= 1
             [man.update() for man in self]
 
     def follow(self, flags):
@@ -219,7 +228,7 @@ class Battery(Group):
         flagCoords = self.flag.coords
         if (self.flag.select == 0 and self.distance(flagCoords) > 0 and
             (self.target is None or not self.flag.attackMove)):
-            if self.formed < self.size:
+            if self.formed < self.cannonSize:
                 self.moving = True
                 self.lookAt(flagCoords)
                 [cannon.form(self.angle, self.oldAngle, self.coords)
@@ -246,9 +255,15 @@ class Battery(Group):
 
     def aim(self, group):
         # select target, turn toward it
-        if self.size == 0:
+        if self.size == 0 or self.panicTime != 0:
             return
         for target in group:
+            if (self.distance(target.coords) < C_MIN_RANGE and
+                self.team != target.team):
+                [cannon.startPanic() for cannon in self.cannons]
+                [man.startPanic() for man in self]
+                self.panicTime = time.get_ticks()
+                return
             if self.target is None:
                 seen = self.distance(target.coords) <= C_SIGHT
                 if (seen and target.size > 0 and self.allowShoot and
@@ -269,7 +284,7 @@ class Battery(Group):
                 cannon.aim(self.target, self.angle, self.allowShoot)
         elif (abs(self.oldAngle - self.angle) > C_FIRE_ANGLE or
               (toTarget > self.range and self.oldAngle != self.angle)):
-            if self.formed < self.size:
+            if self.formed < self.cannonSize:
                 for cannon in self.cannons:
                     cannon.form(self.angle, self.oldAngle, self.coords)
                 for man in self:
@@ -295,6 +310,16 @@ class Battery(Group):
         morale = self.morale * C_PANIC_BAY ** bayonet
         if random.randint(0, 99) < morale and self.panicTime == 0:
             [cannon.startPanic() for cannon in self.cannons]
+            [man.startPanic() for man in self]
+            self.panicTime = time.get_ticks()
+
+    def getShelled(self, ball):
+        # kill own Cannoneers from Cannon roundshot
+        for unit in self:
+            if unit.rect.colliderect(ball.rect):
+                self.remove(unit)
+        if random.randint(0, 99) < self.morale and self.panicTime == 0:
+            [cannon.startPanic() for cannon in self]
             [man.startPanic() for man in self]
             self.panicTime = time.get_ticks()
 

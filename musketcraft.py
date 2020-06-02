@@ -56,12 +56,12 @@ def runGame():
                              'images/green_human.png')
     flags = []
     units = [Company(screen, 0, 700, 100, 3, 5, *blueImages, "blue", flags),
-             Company(screen, 0, 200, 700, 3, 5, *blueImages, "blue", flags),
-             Battery(screen, 0, 900, 400, 3, *blueCannon, "blue", flags),
+             Company(screen, 0, 700, 700, 3, 5, *blueImages, "blue", flags),
+             Battery(screen, 0, 700, 400, 3, *blueCannon, "blue", flags),
              Company(screen, math.pi, 1050, 100, 3, 5,
                      *greenImages, "green", flags, False),
-             Company(screen, math.pi, 1010, 600, 3, 5,
-                     *greenImages, "green", flags, False),
+             Battery(screen, math.pi, 1050, 400, 3, *greenCannon, "green",
+                     flags, False)
              ]
 
     [company.unitInit(units) for company in units]
