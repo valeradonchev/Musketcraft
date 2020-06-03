@@ -42,7 +42,7 @@ def update(screen, units, flags):
     # redraw screen
     screen.fill(BG_COLOR)
     # targeting
-    [company.aim(units) for company in units]
+    [company.aim() for company in units]
     # process logic for moving
     [company.follow(flags) for company in units]
     # give orders

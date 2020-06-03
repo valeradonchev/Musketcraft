@@ -253,11 +253,11 @@ class Battery(Group):
         distance = coords - self.coords
         self.angle = (math.atan2(-1 * distance[1], distance[0]))
 
-    def aim(self, group):
+    def aim(self):
         # select target, turn toward it
         if self.size == 0 or self.panicTime != 0:
             return
-        for target in group:
+        for target in self.units:
             if (self.distance(target.coords) < C_MIN_RANGE and
                 self.team != target.team):
                 [cannon.startPanic() for cannon in self.cannons]

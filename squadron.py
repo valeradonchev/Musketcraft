@@ -1,7 +1,7 @@
 # import pygame
 import math
 from pygame.sprite import Group
-from infantry import Infantry
+from cavalry import Cavalry
 from settings import I_SPEED, I_RANGE, I_MORALE, I_MORALE_MIN, I_SIGHT
 from settings import I_PANIC_TIME, I_GAPY, I_PANIC_BAY, I_FIRE_ANGLE
 from flag import Flag
@@ -14,7 +14,7 @@ from button import Button
 "click on any Infantry - bring up orders: bayonets, carre, etc."
 
 
-class Company(Group):
+class Squadron(Group):
     """Small unit of several Infantry controlled by Flag
 
     Parents
@@ -97,7 +97,7 @@ class Company(Group):
         return string with name of file for id, used in testing
     """
 
-    def __init__(self, screen, angle, x, y, sizex, sizey, file1, file2, file3,
+    def __init__(self, screen, angle, x, y, sizex, sizey, file1, file2,
                  fileFlag, team, flags, play=True):
         super().__init__()
         self.coords = np.array([x, y], dtype=float)
@@ -107,8 +107,8 @@ class Company(Group):
         self.oldAngle = self.angle
         # add infantry to company
         for i in range(sizex * sizey):
-            self.add(Infantry(screen, angle, i, sizex, sizey, file1, file2,
-                              file3, self.coords))
+            self.add(Cavalry(screen, angle, i, sizex, sizey, file1, file2,
+                             self.coords))
         self.flag = Flag(screen, x, y, fileFlag, play)
         flags.append(self.flag)
         self.target = None
@@ -234,7 +234,7 @@ class Company(Group):
         # select target, turn toward it
         if self.size == 0:
             return
-        for target in self.units:
+        for target in self.group:
             if self.target is None:
                 seen = self.distance(target.coords) <= I_SIGHT
                 if (seen and target.size > 0 and self.allowShoot and
