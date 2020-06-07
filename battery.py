@@ -253,13 +253,12 @@ class Battery(Group):
         distance = coords - self.coords
         self.angle = (math.atan2(-1 * distance[1], distance[0]))
 
-    def aim(self):
-        # select target, turn toward it
-        if self.size == 0 or self.panicTime != 0:
-            return
+    def findTarget(self):
+        # select target
         for target in self.units:
             if (self.distance(target.coords) < C_MIN_RANGE and
                 self.team != target.team):
+                self.target = None
                 [cannon.startPanic() for cannon in self.cannons]
                 [man.startPanic() for man in self]
                 self.panicTime = time.get_ticks()
@@ -272,6 +271,12 @@ class Battery(Group):
                     if self.moving:
                         self.oldAngle = self.angle
                         self.stop()
+
+    def aim(self):
+        # select target, turn toward it
+        if self.size == 0 or self.panicTime != 0:
+            return
+        self.findTarget()
         if self.target is None:
             return
         self.lookAt(self.target.coords)
@@ -282,8 +287,7 @@ class Battery(Group):
             self.stop(True)
             for cannon in self.cannons:
                 cannon.aim(self.target, self.angle, self.allowShoot)
-        elif (abs(self.oldAngle - self.angle) > C_FIRE_ANGLE or
-              (toTarget > self.range and self.oldAngle != self.angle)):
+        elif abs(self.oldAngle - self.angle) > C_FIRE_ANGLE:
             if self.formed < self.cannonSize:
                 for cannon in self.cannons:
                     cannon.form(self.angle, self.oldAngle, self.coords)
@@ -295,8 +299,12 @@ class Battery(Group):
         elif toTarget > self.range:
             self.flag.attackMove = True
             self.setSpeed(self.target.coords)
-            [cannon.setSpeed(self.speed) for cannon in self.cannons]
-            [man.setSpeed(self.speed) for man in self]
+            for cannon in self.cannons:
+                cannon.angle = self.angle
+                cannon.setSpeed(self.speed)
+            for man in self:
+                man.angle = self.angle
+                man.setSpeed(self.speed)
         else:
             self.stop(True)
             for cannon in self.cannons:

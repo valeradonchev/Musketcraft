@@ -11,8 +11,8 @@ I_SPEED = 1 * SCALE * SPEED  # speed of infantry
 I_AIM = 1000 // SPEED  # aim time of infantry in millisec
 I_END_FIRE = 400 // SPEED  # time to end fire animation of infantry
 I_LOAD = 1000 // SPEED  # reload time of infantry in millisec
-I_RANGE = 350 * SCALE  # range of infantry
-I_SIGHT = 400 * SCALE  # sight range of infantry
+I_RANGE = 550 * SCALE  # range of infantry
+I_SIGHT = 600 * SCALE  # sight range of infantry
 I_CHANCE = 1  # infantry's base percent chance to hit
 I_DELAY = 100 // SPEED  # +/- range of random firing dealy
 I_MORALE = -10  # base morale - percent chance to flee
@@ -56,13 +56,13 @@ CV_LOAD = 500 // SPEED  # reload time of cavalry in millisec
 CV_SIGHT = 700 * SCALE  # sight range of cavalry
 # CV_CHANCE = 1  # cavalry's base percent chance to hit
 CV_DELAY = 50 // SPEED  # +/- range of random firing dealy
-CV_MORALE = -10  # base morale - percent chance to flee
+CV_MORALE = -40  # base morale - percent chance to flee
 CV_MORALE_MIN = 25  # max percent chance to flee
 CV_PANIC_TIME = 1000 // SPEED  # Time to panic
 CV_PANIC_BAY = 1.5  # Factor of chance to panic from bayonets
 CV_BAY_CHANCE = 90  # Percent chance to hit with bayonet
-# CV_FIRE_ANGLE = math.pi / 12
-# Angle (in radians) within which cavalry will fire
+CV_FIRE_ANGLE = math.pi / 12
+# Angle (in radians) within which cavalry will charge
 # flag button settings
 FB_SIZE = (120, 50)  # size of button
 FB_COLOR = (150, 0, 0)  # color of button

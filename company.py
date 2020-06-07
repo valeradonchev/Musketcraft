@@ -2,8 +2,8 @@
 import math
 from pygame.sprite import Group
 from infantry import Infantry
-from settings import I_SPEED, I_RANGE, I_MORALE, I_MORALE_MIN, I_SIGHT
-from settings import I_PANIC_TIME, I_GAPY, I_PANIC_BAY, I_FIRE_ANGLE
+from settings import I_SPEED, I_RANGE, I_MORALE, I_MORALE_MIN, I_SIGHT, I_GAPY
+from settings import I_PANIC_TIME, I_PANIC_BAY, I_FIRE_ANGLE, I_GAPX
 from flag import Flag
 from pygame import time
 import pygame
@@ -107,7 +107,15 @@ class Company(Group):
         self.oldAngle = self.angle
         # add infantry to company
         for i in range(sizex * sizey):
-            self.add(Infantry(screen, angle, i, sizex, sizey, file1, file2,
+            """ x, y displacement from center of Company based on count
+            shiftx increases with count with a period of sizex, creating
+            a row of soldiers with a length of sizex
+            shifty increases when count increases by sizex, starting
+            a new row of soldiers every sizex soldiers
+            """
+            shifty = I_GAPY * ((i % sizey) - sizey // 2)
+            shiftx = I_GAPX * ((i // sizey) - sizex // 2)
+            self.add(Infantry(screen, angle, shiftx, shifty, file1, file2,
                               file3, self.coords))
         self.flag = Flag(screen, x, y, fileFlag, play)
         flags.append(self.flag)
@@ -230,10 +238,8 @@ class Company(Group):
         distance = coords - self.coords
         self.angle = (math.atan2(-1 * distance[1], distance[0]))
 
-    def aim(self):
-        # select target, turn toward it
-        if self.size == 0:
-            return
+    def findTarget(self):
+        # select target
         for target in self.units:
             if self.target is None:
                 seen = self.distance(target.coords) <= I_SIGHT
@@ -243,6 +249,12 @@ class Company(Group):
                     if self.moving:
                         self.oldAngle = self.angle
                         self.stop()
+
+    def aim(self):
+        # select target, turn toward it
+        if self.size == 0:
+            return
+        self.findTarget()
         if self.target is None:
             return
         self.lookAt(self.target.coords)
@@ -253,8 +265,7 @@ class Company(Group):
             self.stop(True)
             for infantry in self:
                 infantry.aim(self.target, self.angle, self.allowShoot)
-        elif (abs(self.oldAngle - self.angle) > I_FIRE_ANGLE or
-              (toTarget > self.range and self.oldAngle != self.angle)):
+        elif abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
             if self.formed < self.size:
                 for infantry in self:
                     infantry.form(self.angle, self.oldAngle, self.coords)
@@ -264,7 +275,9 @@ class Company(Group):
         elif toTarget > self.range:
             self.flag.attackMove = True
             self.setSpeed(self.target.coords)
-            [infantry.setSpeed(self.speed) for infantry in self]
+            for infantry in self:
+                infantry.angle = self.angle
+                infantry.setSpeed(self.speed)
         else:
             self.stop(True)
             for infantry in self:

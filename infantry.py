@@ -1,4 +1,4 @@
-from settings import I_GAPX, I_GAPY, I_SPEED, I_RANGE, I_AIM, I_LOAD, I_CHANCE
+from settings import I_SPEED, I_RANGE, I_AIM, I_LOAD, I_CHANCE
 from settings import I_END_FIRE, I_DELAY, I_BAY_CHANCE
 import pygame
 import math
@@ -98,7 +98,7 @@ class Infantry(Sprite):
 
     """
 
-    def __init__(self, screen, angle, count, sizex, sizey, file1, file2, file3,
+    def __init__(self, screen, angle, shiftx, shifty, file1, file2, file3,
                  coords):
         super().__init__()
         self.screen = screen
@@ -108,14 +108,6 @@ class Infantry(Sprite):
         self.costume = self.ready
         self.angle = angle
         self.rect = self.image.get_rect()
-        """ x, y displacement from center of Company based on count
-        shiftx increases with count with a period of sizex, creating
-        a row of soldiers with a length of sizex
-        shifty increases when count increases by sizex, starting
-        a new row of soldiers every sizex soldiers
-        """
-        shifty = I_GAPY * ((count % sizey) - sizey // 2)
-        shiftx = I_GAPX * ((count // sizey) - sizex // 2)
         self.shiftr = math.hypot(shiftx, shifty)
         self.shiftt = math.atan2(shifty, shiftx)
         self.rect.center = coords + self.relatCoords

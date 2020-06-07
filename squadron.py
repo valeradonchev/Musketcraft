@@ -2,8 +2,8 @@
 import math
 from pygame.sprite import Group
 from cavalry import Cavalry
-from settings import I_SPEED, I_RANGE, I_MORALE, I_MORALE_MIN, I_SIGHT
-from settings import I_PANIC_TIME, I_GAPY, I_PANIC_BAY, I_FIRE_ANGLE
+from settings import CV_SPEED, CV_MORALE, CV_MORALE_MIN, CV_FIRE_ANGLE
+from settings import CV_PANIC_TIME, CV_PANIC_BAY, CV_GAPX, CV_GAPY, CV_SIGHT
 from flag import Flag
 from pygame import time
 import pygame
@@ -107,7 +107,15 @@ class Squadron(Group):
         self.oldAngle = self.angle
         # add infantry to company
         for i in range(sizex * sizey):
-            self.add(Cavalry(screen, angle, i, sizex, sizey, file1, file2,
+            """ x, y displacement from center of Company based on count
+            shiftx increases with count with a period of sizex, creating
+            a row of soldiers with a length of sizex
+            shifty increases when count increases by sizex, starting
+            a new row of soldiers every sizex soldiers
+            """
+            shifty = CV_GAPY * ((i % sizey) - sizey // 2)
+            shiftx = CV_GAPX * ((i // sizey) - sizex // 2)
+            self.add(Cavalry(screen, angle, shiftx, shifty, file1, file2,
                              self.coords))
         self.flag = Flag(screen, x, y, fileFlag, play)
         flags.append(self.flag)
@@ -117,8 +125,8 @@ class Squadron(Group):
         self.panicTime = 0
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
-        self.bayonetButton = Button(screen, "Bayonets")
-        self.bayonets = False
+        # self.bayonetButton = Button(screen, "Bayonets")
+        # self.bayonets = False
         self.play = play
         self.team = team
         self.units = []
@@ -153,9 +161,7 @@ class Squadron(Group):
     @property
     def range(self):
         # distance in pixels which Companies will set enemies as target
-        if self.bayonets:
-            return I_SPEED
-        return (I_RANGE - (self.sizey // 2 + 1) * I_GAPY)
+        return CV_SPEED
 
     @property
     def morale(self):
@@ -163,19 +169,19 @@ class Squadron(Group):
         allySize = 0
         enemySize = 0
         for company in self.units:
-            if self.distance(company.coords) < I_SIGHT:
+            if self.distance(company.coords) < CV_SIGHT:
                 if company.team == self.team:
                     allySize += company.size
                 else:
                     enemySize += company.size
-        deathMorale = I_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
+        deathMorale = CV_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
         if allySize > 0:
-            return I_MORALE + deathMorale * enemySize / allySize
+            return CV_MORALE + deathMorale * enemySize / allySize
         return 0
 
     def setSpeed(self, coords):
         # set speed to min of default, distance to coords
-        self.speed = min(I_SPEED, self.distance(coords))
+        self.speed = min(CV_SPEED, self.distance(coords))
 
     def distance(self, coords):
         # measure straight line distance Company to coords
@@ -192,11 +198,11 @@ class Squadron(Group):
         # move Company, update Infantry, panic if necessary
         if self.panicTime != 0:
             [infantry.panic() for infantry in self]
-            if time.get_ticks() - self.panicTime > I_PANIC_TIME:
+            if time.get_ticks() - self.panicTime > CV_PANIC_TIME:
                 self.empty()
         else:
             self.coords += self.velocity
-            [infantry.update(self.allowShoot, self.bayonets) for infantry in self]
+            [infantry.update(self.allowShoot) for infantry in self]
 
     def follow(self, flags):
         # move Company and Infantry to flag
@@ -215,7 +221,7 @@ class Squadron(Group):
                  for infantry in self]
             else:
                 self.setSpeed(flagCoords)
-                if self.speed == I_SPEED:
+                if self.speed == CV_SPEED:
                     self.lookAt(flagCoords)
                 [infantry.setSpeed(self.speed) for infantry in self]
         elif self.moving:
@@ -230,52 +236,57 @@ class Squadron(Group):
         distance = coords - self.coords
         self.angle = (math.atan2(-1 * distance[1], distance[0]))
 
-    def aim(self):
-        # select target, turn toward it
-        if self.size == 0:
-            return
-        for target in self.group:
+    def findTarget(self):
+        # select target
+        for target in self.units:
             if self.target is None:
-                seen = self.distance(target.coords) <= I_SIGHT
+                seen = self.distance(target.coords) <= CV_SIGHT
                 if (seen and target.size > 0 and self.allowShoot and
                     target.team != self.team):
                     self.target = target
                     if self.moving:
                         self.oldAngle = self.angle
                         self.stop()
+
+    def aim(self):
+        # select target, turn toward it
+        if self.size == 0:
+            return
+        self.findTarget()
         if self.target is None:
             return
         self.lookAt(self.target.coords)
         toTarget = self.distance(self.target.coords)
         dead = self.target.size == 0
-        if toTarget > I_SIGHT or dead or not self.allowShoot:
+        if toTarget > CV_SIGHT or dead or not self.allowShoot:
             self.target = None
             self.stop(True)
-            for infantry in self:
-                infantry.aim(self.target, self.angle, self.allowShoot)
-        elif (abs(self.oldAngle - self.angle) > I_FIRE_ANGLE or
-              (toTarget > self.range and self.oldAngle != self.angle)):
+            for cavalry in self:
+                cavalry.aim(self.target, self.angle, self.allowShoot)
+        elif abs(self.oldAngle - self.angle) > CV_FIRE_ANGLE:
             if self.formed < self.size:
-                for infantry in self:
-                    infantry.form(self.angle, self.oldAngle, self.coords)
+                for cavalry in self:
+                    cavalry.form(self.angle, self.oldAngle, self.coords)
             else:
                 self.oldAngle = self.angle
                 self.stop(True)
         elif toTarget > self.range:
             self.flag.attackMove = True
             self.setSpeed(self.target.coords)
-            [infantry.setSpeed(self.speed) for infantry in self]
+            for cavalry in self:
+                cavalry.angle = self.angle
+                cavalry.setSpeed(self.speed)
         else:
             self.stop(True)
-            for infantry in self:
-                infantry.aim(self.target, self.angle, self.allowShoot)
+            for cavalry in self:
+                cavalry.aim(self.target, self.angle, self.allowShoot)
 
     def getHit(self, bayonet=False):
         # kill own Infantry when shot
         if self.size == 0:
             return
         self.remove(random.choice(self.sprites()))
-        morale = self.morale * I_PANIC_BAY ** bayonet
+        morale = self.morale * CV_PANIC_BAY ** bayonet
         if random.randint(0, 99) < morale and self.panicTime == 0:
             [infantry.startPanic() for infantry in self]
             self.panicTime = time.get_ticks()
@@ -303,11 +314,11 @@ class Squadron(Group):
             self.showOrders = 1
         if self.showOrders == 1 and not click:
             self.showOrders = 2
-            self.bayonetButton.draw(self.coords)
+            # self.bayonetButton.draw(self.coords)
         if self.showOrders == 2 and click:
             self.showOrders = 3
-            if self.bayonetButton.rect.collidepoint(mouse):
-                self.bayonets = not self.bayonets
+            # if self.bayonetButton.rect.collidepoint(mouse):
+                # self.bayonets = not self.bayonets
         if self.showOrders == 3 and not click:
             self.showOrders = 0
 
@@ -316,8 +327,8 @@ class Squadron(Group):
         [infantry.blitme() for infantry in self]
         if self.size > 0:
             self.flag.blitme()
-        if self.showOrders > 1:
-            self.bayonetButton.blitme()
+        # if self.showOrders > 1:
+            # self.bayonetButton.blitme()
 
     def __str__(self):
         return self.id

@@ -3,6 +3,7 @@ from settings import SCREEN_WIDTH, SCREEN_HEIGHT, SCALE
 from game_functions import check_events, update
 from company import Company
 from battery import Battery
+from squadron import Squadron
 import math
 
 
@@ -54,10 +55,14 @@ def runGame():
                              'images/green_flag.png',
                              'images/cannonball.png',
                              'images/green_human.png')
+    blueCav = scaleImage('images/blue_cavalry.png',
+                         'images/blue_cavalry_slash.png',
+                         'images/blue_flag.png',)
     flags = []
     units = [Company(screen, 0, 700, 100, 3, 5, *blueImages, "blue", flags),
              Company(screen, 0, 700, 700, 3, 5, *blueImages, "blue", flags),
-             Battery(screen, 0, 700, 400, 3, *blueCannon, "blue", flags),
+             Battery(screen, 0, 500, 400, 3, *blueCannon, "blue", flags),
+             Squadron(screen, 0, 400, 700, 2, 3, *blueCav, "blue", flags),
              Company(screen, math.pi, 1050, 100, 3, 5,
                      *greenImages, "green", flags, False),
              Battery(screen, math.pi, 1050, 400, 3, *greenCannon, "green",

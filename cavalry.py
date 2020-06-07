@@ -1,5 +1,5 @@
-from settings import I_GAPX, I_GAPY, I_SPEED, I_RANGE, I_AIM, I_LOAD, I_CHANCE
-from settings import I_END_FIRE, I_DELAY, I_BAY_CHANCE
+from settings import CV_SPEED, CV_AIM, CV_LOAD, CV_END_FIRE, CV_DELAY
+from settings import CV_BAY_CHANCE
 import pygame
 import math
 from pygame.sprite import Sprite
@@ -88,8 +88,7 @@ class Cavalry(Sprite):
 
     """
 
-    def __init__(self, screen, angle, count, sizex, sizey, file1, file2,
-                 coords):
+    def __init__(self, screen, angle, shiftx, shifty, file1, file2, coords):
         super().__init__()
         self.screen = screen
         self.ready = file1
@@ -97,14 +96,6 @@ class Cavalry(Sprite):
         self.costume = self.ready
         self.angle = angle
         self.rect = self.image.get_rect()
-        """ x, y displacement from center of Company based on count
-        shiftx increases with count with a period of sizex, creating
-        a row of soldiers with a length of sizex
-        shifty increases when count increases by sizex, starting
-        a new row of soldiers every sizex soldiers
-        """
-        shifty = I_GAPY * ((count % sizey) - sizey // 2)
-        shiftx = I_GAPX * ((count // sizey) - sizex // 2)
         self.shiftr = math.hypot(shiftx, shifty)
         self.shiftt = math.atan2(shifty, shiftx)
         self.rect.center = coords + self.relatCoords
@@ -154,7 +145,7 @@ class Cavalry(Sprite):
     def move(self):
         # point at targetxy, move to targetxy
         self.lookAt(self.targetxy)
-        self.setSpeed(min(I_SPEED, self.distance(self.targetxy)))
+        self.setSpeed(min(CV_SPEED, self.distance(self.targetxy)))
 
     def distance(self, coords):
         # measure straight line distance Infantry to coords, 0 if no target
@@ -185,12 +176,11 @@ class Cavalry(Sprite):
             self.angle = angle
             return
         if self.target is None:
-            if self.distance(target.coords) <= I_RANGE and target.size > 0:
+            if target.size > 0:
                 self.target = target
         if self.target is not None:
             self.lookAt(self.target.coords)
-            toTarget = self.distance(self.target.coords)
-            if toTarget > I_RANGE or not allowShoot:
+            if not allowShoot:
                 self.target = None
                 self.angle = angle
             else:
@@ -205,7 +195,7 @@ class Cavalry(Sprite):
         # move Infantry in randomly determined direction while panicking
         self.aim(None)
         self.angle = self.panicAngle
-        self.setSpeed(I_SPEED)
+        self.setSpeed(CV_SPEED)
         self.update()
 
     def startPanic(self):
@@ -218,24 +208,19 @@ class Cavalry(Sprite):
         if self.target is None or not allowShoot:
             self.aimedOn = 0
         if self.aimedOn == 0 and self.target is not None and self.firedOn == 0:
-            self.aimedOn = time.get_ticks() + random.randint(-I_DELAY, I_DELAY)
-        if self.aimedOn != 0 and time.get_ticks() - self.aimedOn > I_AIM:
-            self.costume = self.firing
+            self.aimedOn = time.get_ticks() + random.randint(-CV_DELAY, CV_DELAY)
+        if self.aimedOn != 0 and time.get_ticks() - self.aimedOn > CV_AIM:
+            self.costume = self.slashing
             if bayonet:
                 self.costume = self.bayonet
             self.firedOn = time.get_ticks()
             self.aimedOn = 0
-            if self.distance(self.target.coords) > I_SPEED:
-                chance = (I_CHANCE * I_RANGE /
-                          self.distance(self.target.coords) *
-                          max(1, self.target.size // 3))
-            else:
-                chance = I_BAY_CHANCE
+            chance = CV_BAY_CHANCE
             if random.randint(0, 99) < chance:
                 self.target.getHit(bayonet)
-        if self.firedOn != 0 and time.get_ticks() - self.firedOn > I_END_FIRE:
+        if self.firedOn != 0 and time.get_ticks() - self.firedOn > CV_END_FIRE:
             self.costume = self.ready
-        if self.firedOn != 0 and time.get_ticks() - self.firedOn > I_LOAD:
+        if self.firedOn != 0 and time.get_ticks() - self.firedOn > CV_LOAD:
             self.firedOn = 0
 
     def blitme(self):
