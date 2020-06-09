@@ -4,6 +4,7 @@ from pygame.sprite import Group
 from cavalry import Cavalry
 from settings import CV_SPEED, CV_MORALE, CV_MORALE_MIN, CV_FIRE_ANGLE
 from settings import CV_PANIC_TIME, CV_PANIC_BAY, CV_GAPX, CV_GAPY, CV_SIGHT
+from settings import CV_ANTI_CAV, CV_ACCEL, CV_RANGE
 from flag import Flag
 from pygame import time
 import pygame
@@ -132,6 +133,7 @@ class Squadron(Group):
         self.units = []
         # used to id object for testing, not meant to be seen/used
         self.id = file1
+        self.chargeStart = 0
 
     def unitInit(self, units):
         self.units = units
@@ -181,7 +183,11 @@ class Squadron(Group):
 
     def setSpeed(self, coords):
         # set speed to min of default, distance to coords
-        self.speed = min(CV_SPEED, self.distance(coords))
+        if self.chargeStart == 0:
+            speed = CV_SPEED
+        else:
+            speed = (time.get_ticks() - self.chargeStart) // 100 * CV_ACCEL
+        self.speed = min(speed, self.distance(coords))
 
     def distance(self, coords):
         # measure straight line distance Company to coords
@@ -214,6 +220,7 @@ class Squadron(Group):
         flagCoords = self.flag.coords
         if (self.flag.select == 0 and self.distance(flagCoords) > 0 and
             (self.target is None or not self.flag.attackMove)):
+            self.chargeStart = 0
             if self.formed < self.size:
                 self.moving = True
                 self.lookAt(flagCoords)
@@ -271,12 +278,23 @@ class Squadron(Group):
                 self.oldAngle = self.angle
                 self.stop(True)
         elif toTarget > self.range:
+            if toTarget > CV_RANGE and self.chargeStart == 0:
+                self.chargeStart = time.get_ticks()
             self.flag.attackMove = True
             self.setSpeed(self.target.coords)
             for cavalry in self:
                 cavalry.angle = self.angle
                 cavalry.setSpeed(self.speed)
         else:
+            if self.chargeStart != 0:
+                angleDiff = (self.target.angle - self.angle) % (math.pi * 2)
+                angleDiff = math.pi - angleDiff
+                print(angleDiff)
+                if -CV_FIRE_ANGLE < angleDiff < CV_FIRE_ANGLE:
+                    for cavalry in self:
+                        if random.randint(0, 99) < CV_ANTI_CAV:
+                            self.remove(cavalry)
+                self.chargeStart = 0
             self.stop(True)
             for cavalry in self:
                 cavalry.aim(self.target, self.angle, self.allowShoot)

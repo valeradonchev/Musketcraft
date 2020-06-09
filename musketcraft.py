@@ -62,7 +62,7 @@ def runGame():
     units = [Company(screen, 0, 700, 100, 3, 5, *blueImages, "blue", flags),
              Company(screen, 0, 700, 700, 3, 5, *blueImages, "blue", flags),
              Battery(screen, 0, 500, 400, 3, *blueCannon, "blue", flags),
-             Squadron(screen, 0, 400, 700, 2, 3, *blueCav, "blue", flags),
+             Squadron(screen, 0, 400, 100, 2, 3, *blueCav, "blue", flags),
              Company(screen, math.pi, 1050, 100, 3, 5,
                      *greenImages, "green", flags, False),
              Battery(screen, math.pi, 1050, 400, 3, *greenCannon, "green",
