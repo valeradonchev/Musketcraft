@@ -1,23 +1,11 @@
 import pygame
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, SCALE
+from settings import SCREEN_WIDTH, SCREEN_HEIGHT, blueImages, greenImages
+from settings import blueCannon, greenCannon, blueCav, greenCav
 from game_functions import check_events, update
 from company import Company
 from battery import Battery
 from squadron import Squadron
 import math
-
-
-def scaleImage(*paths, scale=1):
-    """convert image file location list into scaled image list
-rdddq
-    Resizes images by SCALE constant multiplier
-    """
-    images = []
-    for path in paths:
-        image = pygame.image.load(path)
-        size = [int(i * SCALE * scale) for i in image.get_rect().size]
-        images.append(pygame.transform.scale(image, size))
-    return images
 
 
 def runGame():
@@ -36,28 +24,6 @@ def runGame():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Musketcraft")
-
-    blueImages = scaleImage('images/blue_infantry.png',
-                            'images/blue_infantry_firing.png',
-                            'images/blue_infantry_bayonet.png',
-                            'images/blue_flag.png',)
-    greenImages = scaleImage('images/green_infantry.png',
-                             'images/green_infantry_firing.png',
-                             'images/green_infantry_bayonet.png',
-                             'images/green_flag.png',)
-    blueCannon = scaleImage('images/blue_cannon.png',
-                            'images/blue_cannon_firing.png',
-                            'images/blue_flag.png',
-                            'images/cannonball.png',
-                            'images/blue_human.png')
-    greenCannon = scaleImage('images/green_cannon.png',
-                             'images/green_cannon_firing.png',
-                             'images/green_flag.png',
-                             'images/cannonball.png',
-                             'images/green_human.png')
-    blueCav = scaleImage('images/blue_cavalry.png',
-                         'images/blue_cavalry_slash.png',
-                         'images/blue_flag.png',)
     flags = []
     units = [Company(screen, 0, 700, 100, 3, 5, *blueImages, "blue", flags),
              Company(screen, 0, 700, 700, 3, 5, *blueImages, "blue", flags),
@@ -70,9 +36,11 @@ def runGame():
              ]
 
     [company.unitInit(units) for company in units]
+    color = "blue"
     # main loop
     while True:
-        check_events()
+        color, units = check_events(color, units, screen, flags)
+        [company.unitInit(units) for company in units]
         test = update(screen, units, flags)
         if(test == "restart"):
             break

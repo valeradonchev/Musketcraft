@@ -1,4 +1,5 @@
 import math
+import pygame
 """Store constants for use in game, not altered by code/user
 """
 # scale of game elements
@@ -79,3 +80,43 @@ ROAD_COLOR = (130, 35, 35)
 RIVER_COLOR = (50, 50, 250)
 # Menu settings(TEMPORARY)
 M_CENTER = (1060, 60)
+# Images
+
+
+def scaleImage(*paths, scale=1):
+    """convert image file location list into scaled image list
+rdddq
+    Resizes images by SCALE constant multiplier
+    """
+    images = []
+    for path in paths:
+        image = pygame.image.load(path)
+        size = [int(i * SCALE * scale) for i in image.get_rect().size]
+        images.append(pygame.transform.scale(image, size))
+    return images
+
+
+blueImages = scaleImage('images/blue_infantry.png',
+                        'images/blue_infantry_firing.png',
+                        'images/blue_infantry_bayonet.png',
+                        'images/blue_flag.png',)
+greenImages = scaleImage('images/green_infantry.png',
+                         'images/green_infantry_firing.png',
+                         'images/green_infantry_bayonet.png',
+                         'images/green_flag.png',)
+blueCannon = scaleImage('images/blue_cannon.png',
+                        'images/blue_cannon_firing.png',
+                        'images/blue_flag.png',
+                        'images/cannonball.png',
+                        'images/blue_human.png')
+greenCannon = scaleImage('images/green_cannon.png',
+                         'images/green_cannon_firing.png',
+                         'images/green_flag.png',
+                         'images/cannonball.png',
+                         'images/green_human.png')
+blueCav = scaleImage('images/blue_cavalry.png',
+                     'images/blue_cavalry_slash.png',
+                     'images/blue_flag.png',)
+greenCav = scaleImage('images/green_cavalry.png',
+                      'images/green_cavalry_slash.png',
+                      'images/green_flag.png',)
