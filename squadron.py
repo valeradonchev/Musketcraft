@@ -289,7 +289,6 @@ class Squadron(Group):
             if self.chargeStart != 0:
                 angleDiff = (self.target.angle - self.angle) % (math.pi * 2)
                 angleDiff = math.pi - angleDiff
-                print(angleDiff)
                 if -CV_FIRE_ANGLE < angleDiff < CV_FIRE_ANGLE:
                     for cavalry in self:
                         if random.randint(0, 99) < CV_ANTI_CAV:
