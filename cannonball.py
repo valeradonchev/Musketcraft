@@ -13,7 +13,7 @@ class Cannonball(Sprite):
     pygame.sprite.Sprite
     """
 
-    def __init__(self, screen, angle, file, coords, team, units):
+    def __init__(self, screen, angle, file, coords, enemies):
         super().__init__()
         self.screen = screen
         self.image = file
@@ -23,15 +23,13 @@ class Cannonball(Sprite):
                                   -CB_SPEED * math.sin(self.angle)])
         self.rect = self.image.get_rect()
         self.rect.center = self.coords
-        self.team = team
-        self.units = units
         self.travelled = 0
+        self.enemies = enemies
 
     def update(self, cannon):
-        for company in self.units:
-            if any([self.rect.colliderect(unit.rect) for unit in company]):
-                if self.team != company.team:
-                    company.getShelled(self)
+        for company in self.enemies:
+            if any([self.rect.colliderect(nt.rect) for nt in company.troops]):
+                company.getShelled(self)
         self.coords += self.velocity
         self.travelled += CB_SPEED
         if self.travelled > C_RANGE:

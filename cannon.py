@@ -111,10 +111,6 @@ class Cannon(Sprite):
         self.firedOn = 0
         self.panicAngle = 0
         self.shot = None
-        self.team = team
-
-    def unitInit(self, units):
-        self.units = units
 
     @property
     def relatCoords(self):
@@ -195,11 +191,11 @@ class Cannon(Sprite):
             else:
                 self.lookAt(self.target.coords)
 
-    def update(self, i=0, allowShoot=False):
+    def update(self, enemies, i=0, allowShoot=False):
         # move Cannon based on speed, fire at target if possible
         self.coords += self.velocity
         if i > 0:
-            self.fire(allowShoot)
+            self.fire(enemies, allowShoot)
         else:
             self.costume = self.ready
         if self.shot is not None:
@@ -217,7 +213,7 @@ class Cannon(Sprite):
         self.aim(None)
         self.panicAngle = self.angle + math.pi * random.uniform(.75, 1.25)
 
-    def fire(self, allowShoot=False):
+    def fire(self, enemies, allowShoot=False):
         # fire when target isn't None, reload after firing
         if self.target is None or not allowShoot:
             self.aimedOn = 0
@@ -229,7 +225,7 @@ class Cannon(Sprite):
             self.aimedOn = 0
             angle = self.angle + random.uniform(-C_ACCURACY, C_ACCURACY)
             self.shot = Cannonball(self.screen, angle, self.ball,
-                                   np.copy(self.coords), self.team, self.units)
+                                   np.copy(self.coords), enemies)
         if self.firedOn != 0 and time.get_ticks() - self.firedOn > C_END_FIRE:
             self.costume = self.ready
         if self.firedOn != 0 and time.get_ticks() - self.firedOn > C_LOAD:

@@ -183,8 +183,6 @@ class Cavalry(Sprite):
             if not allowShoot:
                 self.target = None
                 self.angle = angle
-            else:
-                self.lookAt(self.target.coords)
 
     def update(self, allowShoot=False, bayonet=False):
         # move Infantry based on speed, fire at target if possible
