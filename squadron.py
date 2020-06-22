@@ -213,14 +213,11 @@ class Squadron():
 
     def follow(self, flags):
         # move Company and Infantry to flag
-        idle = all(flag.select == 0 for flag in flags)
-        if self.play and self.size > 0 and (idle or self.flag.select > 0):
-            self.flag.checkDrag()
-        else:
-            self.flag.select = 0
+        if self.play and self.size > 0:
+            self.flag.checkDrag(flags, self.coords)
         flagCoords = self.flag.coords
-        if (self.flag.select == 0 and self.distance(flagCoords) > 0 and
-            (self.target is None or not self.flag.attackMove)):
+        flagPlaced = self.flag.select == 0 and self.distance(flagCoords) > 0
+        if flagPlaced and (self.target is None or not self.flag.attackMove):
             self.chargeStart = 0
             if self.formed < self.size:
                 self.moving = True
@@ -228,8 +225,7 @@ class Squadron():
                 [infantry.form(*self.formVars) for infantry in self.troops]
             else:
                 self.setSpeed(flagCoords)
-                if self.speed == CV_SPEED:
-                    self.lookAt(flagCoords)
+                self.lookAt(flagCoords)
                 [infantry.setSpeed(self.speed) for infantry in self.troops]
         elif self.moving:
             self.oldAngle = self.angle
@@ -290,9 +286,12 @@ class Squadron():
             [cavalry.aim(*self.aimVars) for cavalry in self.troops]
 
     def hitBayonets(self):
+        # take losses from defended enemies
         angleDiff = (self.target.angle - self.angle) % (math.pi * 2)
         angleDiff = math.pi - angleDiff
-        if -CV_FIRE_ANGLE < angleDiff < CV_FIRE_ANGLE:
+        carre = hasattr(self.target, 'formation')
+        carre = carre and self.target.formation == "Carre"
+        if -CV_FIRE_ANGLE < angleDiff < CV_FIRE_ANGLE or carre:
             for cavalry in self.troops:
                 if random.randint(0, 99) < CV_ANTI_CAV:
                     self.troops.remove(cavalry)

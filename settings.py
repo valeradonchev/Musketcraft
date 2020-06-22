@@ -6,7 +6,7 @@ import pygame
 SCALE = .3
 SPEED = 1
 # infantry settings
-I_GAPX = 50 * SCALE  # horizontal distance between centers of infantry
+I_GAPX = 70 * SCALE  # horizontal distance between centers of infantry
 I_GAPY = 70 * SCALE  # vertical distance between centers of infantry
 I_SPEED = 1 * SCALE * SPEED  # speed of infantry
 I_AIM = 1000 // SPEED  # aim time of infantry in millisec
@@ -20,7 +20,7 @@ I_MORALE = -10  # base morale - percent chance to flee
 I_MORALE_MIN = 25  # max percent chance to flee
 I_PANIC_TIME = 1000 // SPEED  # Time to panic
 I_PANIC_BAY = 1.5  # Factor of chance to panic from bayonets
-I_BAY_CHANCE = 90  # Percent chance to hit with bayonet
+I_BAY_CHANCE = 60  # Percent chance to hit with bayonet
 I_FIRE_ANGLE = math.pi / 12
 # Angle (in radians) within which infantry will fire
 # cannon settings

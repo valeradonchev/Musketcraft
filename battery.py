@@ -168,6 +168,16 @@ class Battery():
         return (C_RANGE - (self.sizex // 2 + 1) * C_GAPY)
 
     @property
+    def aimVars(self):
+        # variables that are passed to Cavalry for aim funciton
+        return self.target, self.angle, self.allowShoot
+
+    @property
+    def formVars(self):
+        # variables that are passed to Cavalry for form function
+        return self.angle, self.oldAngle, self.coords
+
+    @property
     def morale(self):
         # update chance to flee
         allySize = sum([grp.size for grp in self.allies
@@ -211,25 +221,19 @@ class Battery():
 
     def follow(self, flags):
         # move Battery and Cannons to flag
-        idle = all(flag.select == 0 for flag in flags)
-        if self.play and self.size > 0 and (idle or self.flag.select > 0):
-            self.flag.checkDrag()
-        else:
-            self.flag.select = 0
+        if self.play and self.size > 0:
+            self.flag.checkDrag(flags, self.coords)
         flagCoords = self.flag.coords
-        if (self.flag.select == 0 and self.distance(flagCoords) > 0 and
-            (self.target is None or not self.flag.attackMove)):
+        flagPlaced = self.flag.select == 0 and self.distance(flagCoords) > 0
+        if flagPlaced and (self.target is None or not self.flag.attackMove):
             if self.formed < self.cannonSize:
                 self.moving = True
                 self.lookAt(flagCoords)
-                [cannon.form(self.angle, self.oldAngle, self.coords)
-                 for cannon in self.cannons]
-                [man.form(self.angle, self.oldAngle, self.coords)
-                 for man in self.troops]
+                [cannon.form(*self.formVars) for cannon in self.cannons]
+                [man.form(*self.formVars) for man in self.troops]
             else:
                 self.setSpeed(flagCoords)
-                if self.speed == C_SPEED:
-                    self.lookAt(flagCoords)
+                self.lookAt(flagCoords)
                 [cannon.setSpeed(self.speed) for cannon in self.cannons]
                 [man.setSpeed(self.speed) for man in self.troops]
         elif self.moving:
@@ -247,7 +251,8 @@ class Battery():
     def findTarget(self):
         # select target
         for target in self.enemies:
-            if self.distance(target.coords) < C_MIN_RANGE:
+            melee = self.distance(target.coords) < C_MIN_RANGE
+            if melee and target.size > 0:
                 self.target = None
                 [cannon.startPanic() for cannon in self.cannons]
                 [man.startPanic() for man in self.troops]
@@ -274,14 +279,11 @@ class Battery():
         if toTarget > C_SIGHT or dead or not self.allowShoot:
             self.target = None
             self.stop()
-            for cannon in self.cannons:
-                cannon.aim(self.target, self.angle, self.allowShoot)
+            [cannon.aim(*self.aimVars) for cannon in self.cannons]
         elif abs(self.oldAngle - self.angle) > C_FIRE_ANGLE:
             if self.formed < self.cannonSize:
-                for cannon in self.cannons:
-                    cannon.form(self.angle, self.oldAngle, self.coords)
-                for man in self.troops:
-                    man.form(self.angle, self.oldAngle, self.coords)
+                [cannon.form(*self.formVars) for cannon in self.cannons]
+                [man.form(*self.formVars) for man in self.troops]
             else:
                 self.oldAngle = self.angle
                 self.stop()
@@ -296,8 +298,7 @@ class Battery():
                 man.setSpeed(self.speed)
         else:
             self.stop()
-            for cannon in self.cannons:
-                cannon.aim(self.target, self.angle, self.allowShoot)
+            [cannon.aim(*self.aimVars) for cannon in self.cannons]
 
     def getHit(self, bayonet=False):
         # kill own Cannons when shot

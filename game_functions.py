@@ -47,6 +47,7 @@ def check_events(color, units, screen, flags):
                                           False))
             if event.unicode == "f":
                 units = []
+                flags = []
     return color, units
 
 

@@ -51,10 +51,17 @@ class Flag:
         self.select = 0
         self.attackMove = False
 
-    def checkDrag(self):
+    def checkDrag(self, flags, coords):
         # drag Flag to mouse location, respond to button presses
+        idle = all(flag.select == 0 for flag in flags)
         mouse = pygame.mouse.get_pos()
         click = pygame.mouse.get_pressed()[0]
+        cancel = pygame.mouse.get_pressed()[2]
+        if not idle and self.select == 0:
+            return
+        if cancel and self.select != 0:
+            self.select = 0
+            self.coords = coords
         if self.rect.collidepoint(mouse) and click:
             self.select = 1
         if self.select == 1 and not click:

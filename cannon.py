@@ -191,7 +191,7 @@ class Cannon(Sprite):
             else:
                 self.lookAt(self.target.coords)
 
-    def update(self, enemies, i=0, allowShoot=False):
+    def update(self, enemies=[], i=0, allowShoot=False):
         # move Cannon based on speed, fire at target if possible
         self.coords += self.velocity
         if i > 0:

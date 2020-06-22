@@ -2,7 +2,7 @@
 import math
 from infantry import Infantry
 from settings import I_SPEED, I_RANGE, I_MORALE, I_MORALE_MIN, I_SIGHT, I_GAPY
-from settings import I_PANIC_TIME, I_PANIC_BAY, I_FIRE_ANGLE, I_GAPX
+from settings import I_PANIC_TIME, I_PANIC_BAY, I_FIRE_ANGLE, I_GAPX, FB_SIZE
 from flag import Flag
 from pygame import time
 import pygame
@@ -92,7 +92,7 @@ class Company():
         return string with name of file for id, used in testing
     """
 
-    def __init__(self, screen, angle, x, y, sizex, sizey, file1, file2, file3,
+    def __init__(self, screen, angle, x, y, sizex, sizey, fil1, fil2, fil3,
                  fileFlag, team, flags, play=True):
         super().__init__()
         self.coords = np.array([x, y], dtype=float)
@@ -101,6 +101,9 @@ class Company():
         self.angle = angle
         self.oldAngle = self.angle
         self.troops = []
+        self.maxSize = sizex * sizey
+        self.sizex = sizex
+        self.sizey = sizey
         # add infantry to company
         for i in range(sizex * sizey):
             """ x, y displacement from center of Company based on count
@@ -111,22 +114,23 @@ class Company():
             """
             shifty = I_GAPY * ((i % sizey) - sizey // 2)
             shiftx = I_GAPX * ((i // sizey) - sizex // 2)
-            self.troops.append(Infantry(screen, angle, shiftx, shifty, file1,
-                                        file2, file3, self.coords))
+            self.troops.append(Infantry(screen, angle, i, self.maxSize, shiftx,
+                                        shifty, fil1, fil2, fil3, self.coords))
         self.flag = Flag(screen, x, y, fileFlag, play)
         flags.append(self.flag)
         self.target = None
-        self.maxSize = sizex * sizey
-        self.sizey = sizey
         self.panicTime = 0
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
         self.bayonetButton = Button(screen, "Bayonets")
+        self.carreButton = Button(screen, "Carre")
+        self.lineButton = Button(screen, "Line")
         self.bayonets = False
         self.play = play
         self.team = team
+        self.formation = "Line"
         # used to id object for testing, not meant to be seen/used
-        self.id = file1
+        self.id = fil1
 
     def unitInit(self, units):
         self.enemies = [grp for grp in units if grp.team != self.team]
@@ -162,6 +166,20 @@ class Company():
         return (I_RANGE - (self.sizey // 2 + 1) * I_GAPY)
 
     @property
+    def aimVars(self):
+        # variables that are passed to Cavalry for aim funciton
+        if self.target is None:
+            return self.target, self.angle, self.allowShoot
+        else:
+            return (self.target, self.angle, self.allowShoot,
+                    self.distance(self.target.coords))
+
+    @property
+    def formVars(self):
+        # variables that are passed to Cavalry for form function
+        return self.angle, self.oldAngle, self.coords
+
+    @property
     def morale(self):
         # update chance to flee
         allySize = sum([grp.size for grp in self.allies
@@ -176,6 +194,9 @@ class Company():
     def setSpeed(self, coords):
         # set speed to min of default, distance to coords
         self.speed = min(I_SPEED, self.distance(coords))
+        if self.formation == "Carre":
+            self.speed = 0
+        [infantry.setSpeed(self.speed) for infantry in self.troops]
 
     def distance(self, coords):
         # measure straight line distance Company to coords
@@ -196,28 +217,25 @@ class Company():
         else:
             self.coords += self.velocity
             for infantry in self.troops:
-                infantry.update(self.allowShoot, self.bayonets)
+                if self.target is None:
+                    infantry.update(self.allowShoot, self.bayonets)
+                else:
+                    infantry.update(self.allowShoot, self.bayonets,
+                                    self.distance(self.target.coords))
 
     def follow(self, flags):
-        # move Company and Infantry to flag
-        idle = all(flag.select == 0 for flag in flags)
-        if self.play and self.size > 0 and (idle or self.flag.select > 0):
-            self.flag.checkDrag()
-        else:
-            self.flag.select = 0
+        if self.play and self.size > 0:
+            self.flag.checkDrag(flags, self.coords)
         flagCoords = self.flag.coords
         flagPlaced = self.flag.select == 0 and self.distance(flagCoords) > 0
         if flagPlaced and (self.target is None or not self.flag.attackMove):
             if self.formed < self.size:
                 self.moving = True
                 self.lookAt(flagCoords)
-                [infantry.form(self.angle, self.oldAngle, self.coords)
-                 for infantry in self.troops]
+                [infantry.form(*self.formVars) for infantry in self.troops]
             else:
                 self.setSpeed(flagCoords)
-                if self.speed == I_SPEED:
-                    self.lookAt(flagCoords)
-                [infantry.setSpeed(self.speed) for infantry in self.troops]
+                self.lookAt(flagCoords)
         elif self.moving:
             self.oldAngle = self.angle
             self.stop()
@@ -227,6 +245,8 @@ class Company():
 
     def lookAt(self, coords):
         # set rotation to angle from current center to new point
+        if self.formation == "Carre":
+            return
         distance = coords - self.coords
         self.angle = (math.atan2(-1 * distance[1], distance[0]))
 
@@ -254,12 +274,10 @@ class Company():
         if toTarget > I_SIGHT or dead or not self.allowShoot:
             self.target = None
             self.stop()
-            for infantry in self.troops:
-                infantry.aim(self.target, self.angle, self.allowShoot)
+            [infantry.aim(*self.aimVars) for infantry in self.troops]
         elif abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
             if self.formed < self.size:
-                for infantry in self.troops:
-                    infantry.form(self.angle, self.oldAngle, self.coords)
+                [infantry.form(*self.formVars) for infantry in self.troops]
             else:
                 self.oldAngle = self.angle
                 self.stop()
@@ -268,11 +286,9 @@ class Company():
             self.setSpeed(self.target.coords)
             for infantry in self.troops:
                 infantry.angle = self.angle
-                infantry.setSpeed(self.speed)
         else:
             self.stop()
-            for infantry in self.troops:
-                infantry.aim(self.target, self.angle, self.allowShoot)
+            [infantry.aim(*self.aimVars) for infantry in self.troops]
 
     def getHit(self, bayonet=False):
         # kill own Infantry when shot
@@ -290,30 +306,48 @@ class Company():
             if unit.rect.colliderect(ball.rect):
                 self.troops.remove(unit)
         if random.randint(0, 99) < self.morale and self.panicTime == 0:
-            [infantry.startPanic() for infantry in self]
+            [infantry.startPanic() for infantry in self.troops]
             self.panicTime = time.get_ticks()
 
     def orders(self):
         # give orders other than move for Company
         if not self.play:
             return
-        cover = [self.flag.rect, self.flag.moveButton.rect,
-                 self.flag.attackButton.rect]
+        if self.flag.select != 0 or pygame.mouse.get_pressed()[2]:
+            self.showOrders = 0
         mouse = pygame.mouse.get_pos()
         click = pygame.mouse.get_pressed()[0]
-        if (click and self.showOrders == 0 and
-            any([infantry.rect.collidepoint(mouse) for infantry in self.troops]) and
-            all([not rect.collidepoint(mouse) for rect in cover])):
+        touch = any([inf.rect.collidepoint(mouse) for inf in self.troops])
+        buttonCoords = (self.coords[0], self.coords[1] + FB_SIZE[1])
+        if click and self.showOrders == 0 and touch:
             self.showOrders = 1
         if self.showOrders == 1 and not click:
             self.showOrders = 2
             self.bayonetButton.draw(self.coords)
+            if self.formation == "Line":
+                self.carreButton.draw(buttonCoords)
+                self.lineButton.draw((-100, -100))
+            if self.formation == "Carre":
+                self.lineButton.draw(buttonCoords)
+                self.carreButton.draw((-100, -100))
         if self.showOrders == 2 and click:
             self.showOrders = 3
             if self.bayonetButton.rect.collidepoint(mouse):
                 self.bayonets = not self.bayonets
+            if self.carreButton.rect.collidepoint(mouse):
+                self.formCarre()
+            if self.lineButton.rect.collidepoint(mouse):
+                self.formLine()
         if self.showOrders == 3 and not click:
             self.showOrders = 0
+
+    def formCarre(self):
+        self.formation = "Carre"
+        [inf.formCarre(self.sizex, self.sizey) for inf in self.troops]
+
+    def formLine(self):
+        self.formation = "Line"
+        [inf.formLine() for inf in self.troops]
 
     def blitme(self):
         # print elements of Company
@@ -322,6 +356,8 @@ class Company():
             self.flag.blitme()
         if self.showOrders > 1:
             self.bayonetButton.blitme()
+            self.carreButton.blitme()
+            self.lineButton.blitme()
 
     def __str__(self):
         return self.id
