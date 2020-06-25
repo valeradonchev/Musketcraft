@@ -94,7 +94,7 @@ class Squadron():
     """
 
     def __init__(self, screen, angle, x, y, sizex, sizey, file1, file2,
-                 fileFlag, team, flags, play=True):
+                 fileFlag, team, flags, play=True, defense=False):
         super().__init__()
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
@@ -114,7 +114,7 @@ class Squadron():
             shiftx = CV_GAPX * ((i // sizey) - sizex // 2)
             self.troops.append(Cavalry(screen, angle, shiftx, shifty, file1,
                                        file2, self.coords))
-        self.flag = Flag(screen, x, y, fileFlag, play)
+        self.flag = Flag(screen, (x, y), fileFlag, play)
         flags.append(self.flag)
         self.target = None
         self.maxSize = sizex * sizey
@@ -129,6 +129,7 @@ class Squadron():
         # used to id object for testing, not meant to be seen/used
         self.id = file1
         self.chargeStart = 0
+        self.defense = defense
 
     def unitInit(self, units):
         self.enemies = [grp for grp in units if grp.team != self.team]
@@ -143,6 +144,10 @@ class Squadron():
     def formed(self):
         # count of Infantry in formation
         return sum([infantry.formed for infantry in self.troops])
+
+    @property
+    def idle(self):
+        return not self.defense and self.target is None and not self.moving
 
     @property
     def velocity(self):
@@ -336,6 +341,18 @@ class Squadron():
                 # self.bayonets = not self.bayonets
         if self.showOrders == 3 and not click:
             self.showOrders = 0
+
+    def AIcommand(self, coords, attackMove=False):
+        self.flag.coords = coords
+        self.flag.attackMove = attackMove
+
+    def AIsupport(self):
+        if self.play:
+            return
+        for ally in self.allies:
+            canSee = self.distance(ally.coords) < CV_SIGHT
+            if self.idle and ally.target is not None and canSee:
+                self.AIcommand(ally.coords, True)
 
     def blitme(self):
         # print elements of Company

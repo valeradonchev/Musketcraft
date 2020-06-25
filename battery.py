@@ -90,7 +90,8 @@ class Battery():
     """
 
     def __init__(self, screen, angle, x, y, sizex, file1, file2,
-                 fileFlag, fileBall, fileHuman, team, flags, play=True):
+                 fileFlag, fileBall, fileHuman, team, flags, play=True,
+                 defense=False):
         super().__init__()
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
@@ -115,7 +116,7 @@ class Battery():
                 shiftyCC = shifty + CC_GAPY * (-1) ** (i // 2)
                 self.troops.append(Cannoneer(screen, angle, shiftxCC, shiftyCC,
                                              fileHuman, self.coords))
-        self.flag = Flag(screen, x, y, fileFlag, play)
+        self.flag = Flag(screen, (x, y), fileFlag, play)
         flags.append(self.flag)
         self.target = None
         self.maxSize = sizex
@@ -128,6 +129,7 @@ class Battery():
         self.sizex = sizex
         # used to id object for testing, not meant to be seen/used
         self.id = file1
+        self.defense = defense
 
     def unitInit(self, units):
         self.enemies = [grp for grp in units if grp.team != self.team]
@@ -149,6 +151,10 @@ class Battery():
         cannonFormed = sum([cannon.formed for cannon in self.cannons])
         manFormed = sum([man.formed for man in self.troops])
         return cannonFormed + manFormed
+
+    @property
+    def idle(self):
+        return not self.defense and self.target is None and not self.moving
 
     @property
     def velocity(self):
@@ -342,6 +348,18 @@ class Battery():
             #     self.bayonets = not self.bayonets
         if self.showOrders == 3 and not click:
             self.showOrders = 0
+
+    def AIcommand(self, coords, attackMove=False):
+        self.flag.coords = coords
+        self.flag.attackMove = attackMove
+
+    def AIsupport(self):
+        if self.play:
+            return
+        for ally in self.allies:
+            canSee = self.distance(ally.coords) < C_SIGHT
+            if self.idle and ally.target is not None and canSee:
+                self.AIcommand(ally.coords, True)
 
     def blitme(self):
         # print elements of Battery

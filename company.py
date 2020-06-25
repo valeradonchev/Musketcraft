@@ -93,7 +93,7 @@ class Company():
     """
 
     def __init__(self, screen, angle, x, y, sizex, sizey, fil1, fil2, fil3,
-                 fileFlag, team, flags, play=True):
+                 fileFlag, team, flags, play=True, defense=False):
         super().__init__()
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
@@ -116,7 +116,7 @@ class Company():
             shiftx = I_GAPX * ((i // sizey) - sizex // 2)
             self.troops.append(Infantry(screen, angle, i, self.maxSize, shiftx,
                                         shifty, fil1, fil2, fil3, self.coords))
-        self.flag = Flag(screen, x, y, fileFlag, play)
+        self.flag = Flag(screen, (x, y), fileFlag, play)
         flags.append(self.flag)
         self.target = None
         self.panicTime = 0
@@ -129,6 +129,7 @@ class Company():
         self.play = play
         self.team = team
         self.formation = "Line"
+        self.defense = defense
         # used to id object for testing, not meant to be seen/used
         self.id = fil1
 
@@ -145,6 +146,10 @@ class Company():
     def formed(self):
         # count of Infantry in formation
         return sum([infantry.formed for infantry in self.troops])
+
+    @property
+    def idle(self):
+        return not self.defense and self.target is None and not self.moving
 
     @property
     def velocity(self):
@@ -224,7 +229,7 @@ class Company():
                                     self.distance(self.target.coords))
 
     def follow(self, flags):
-        if self.play and self.size > 0:
+        if self.play:
             self.flag.checkDrag(flags, self.coords)
         flagCoords = self.flag.coords
         flagPlaced = self.flag.select == 0 and self.distance(flagCoords) > 0
@@ -263,8 +268,6 @@ class Company():
 
     def aim(self):
         # select target, turn toward it
-        if self.size == 0:
-            return
         self.findTarget()
         if self.target is None:
             return
@@ -292,8 +295,6 @@ class Company():
 
     def getHit(self, bayonet=False):
         # kill own Infantry when shot
-        if self.size == 0:
-            return
         self.troops.remove(random.choice(self.troops))
         morale = self.morale * I_PANIC_BAY ** bayonet
         if random.randint(0, 99) < morale and self.panicTime == 0:
@@ -349,11 +350,32 @@ class Company():
         self.formation = "Line"
         [inf.formLine() for inf in self.troops]
 
+    def AIcommand(self, coords, attackMove=False):
+        self.flag.coords = coords
+        self.flag.attackMove = attackMove
+
+    def AIsupport(self):
+        if self.play:
+            return
+        for ally in self.allies:
+            canSee = self.distance(ally.coords) < I_SIGHT
+            if self.idle and ally.target is not None and canSee:
+                self.AIcommand(ally.coords, True)
+
+    def AIcarre(self):
+        if self.play:
+            return
+        for enmy in self.enemies:
+            if hasattr(enmy, "chargeStart") and enmy.target == self:
+                self.formCarre()
+                return
+        self.formLine()
+
     def blitme(self):
         # print elements of Company
         [infantry.blitme() for infantry in self.troops]
-        if self.size > 0:
-            self.flag.blitme()
+        # if self.size > 0:
+        self.flag.blitme()
         if self.showOrders > 1:
             self.bayonetButton.blitme()
             self.carreButton.blitme()

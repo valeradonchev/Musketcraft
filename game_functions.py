@@ -8,7 +8,7 @@ from settings import blueCannon, greenCannon, blueCav, greenCav, blueImages
 from settings import greenImages
 
 
-def check_events(color, units, screen, flags):
+def check_events(color, events, units, screen, flags):
     """ watch keyboard/mouse for events
 
     When close window button is pressed, exit the game. Other functionality
@@ -48,6 +48,8 @@ def check_events(color, units, screen, flags):
             if event.unicode == "f":
                 units = []
                 flags = []
+    for event in events:
+        units = event.check(units)
     return color, units
 
 
@@ -78,6 +80,9 @@ def update(screen, units, flags):
     """
     # redraw screen
     screen.fill(BG_COLOR)
+    # remove dead units
+    [units.remove(company) for company in units if company.size == 0]
+    [company.unitInit(units) for company in units]
     # targeting
     [company.aim() for company in units]
     # process logic for moving
@@ -88,5 +93,8 @@ def update(screen, units, flags):
     [company.update() for company in units]
     # update images
     [company.blitme() for company in units]
+    # run AI
+    [company.AIsupport() for company in units]
+    [company.AIcarre() for company in units if hasattr(company, "AIcarre")]
     # draw screen
     pygame.display.flip()

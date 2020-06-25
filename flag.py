@@ -36,13 +36,13 @@ class Flag:
 
     """
 
-    def __init__(self, screen, x, y, file, draggable):
+    def __init__(self, screen, coords, file, draggable):
         self.screen = screen
         # self.image = pygame.image.load(file)
         size = [int(i / math.sqrt(SCALE)) for i in file.get_rect().size]
         self.image = pygame.transform.scale(file, size)
         self.rect = self.image.get_rect()
-        self.rect.center = x, y
+        self.rect.center = coords
         self.coords = np.array(self.rect.center, dtype=float)
         self.draggable = draggable
         self.moveButton = Button(screen, "Move")

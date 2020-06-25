@@ -12,15 +12,14 @@ import numpy as np
 
 "cavalry should be injured without charge"
 
+"sort out values in Settings"
 "update documentation"
 "slow rotation speed"
-"remove groups from list when dead"
 "Add multi control"
 "util module for simple functions"
 "add volley fire"
 
 "Carre - no move, effective vs. cavalry, weak vs. infantry"
-"sort out values in Settings"
 "morale - true lifebar"
 "bayonet - high chance of enemy routing, attacker high chance to die if not"
 
