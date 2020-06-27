@@ -5,6 +5,7 @@ from cannon import Cannon
 from settings import C_SPEED, C_RANGE, C_MORALE, C_MORALE_MIN, C_SIGHT
 from settings import C_PANIC_TIME, C_PANIC_BAY, C_FIRE_ANGLE, C_GAPY
 from settings import CC_GAPX, CC_GAPY, C_MEN_PER, C_MIN_RANGE
+from settings import blueCannon, greenCannon
 from flag import Flag
 from pygame import time
 import pygame
@@ -89,10 +90,13 @@ class Battery():
         return string with name of file for id, used in testing
     """
 
-    def __init__(self, screen, angle, x, y, sizex, file1, file2,
-                 fileFlag, fileBall, fileHuman, team, flags, play=True,
+    def __init__(self, screen, angle, x, y, sizex, team, flags, play=True,
                  defense=False):
         super().__init__()
+        if team == "green":
+            file1, file2, fileFlag, fileBall, fileHuman = greenCannon
+        elif team == "blue":
+            file1, file2, fileFlag, fileBall, fileHuman = blueCannon
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
         self.moving = False
@@ -363,12 +367,17 @@ class Battery():
 
     def blitme(self):
         # print elements of Battery
-        [man.blitme() for man in self.troops]
-        [cannon.blitme() for cannon in self.cannons]
         if self.size > 0:
             self.flag.blitme()
         # if self.showOrders > 1:
             # self.bayonetButton.blitme()
+        rects = [man.blitme() for man in self.troops]
+        for cannon in self.cannons:
+            rect1, rect2 = cannon.blitme()
+            rects.append(rect2)
+            if rect1 != 0:
+                rects.append(rect1)
+        return rects
 
     def __str__(self):
         return self.id

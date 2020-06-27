@@ -74,6 +74,8 @@ FB_TXT_SIZE = 48  # text size
 # screen settings
 SCREEN_WIDTH = 1200
 SCREEN_HEIGHT = 800
+pygame.init()
+SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 BG_COLOR = (50, 110, 0)
 FLECHE_COLOR = (165, 42, 42)
 ROAD_COLOR = (130, 35, 35)
@@ -90,7 +92,7 @@ rdddq
     """
     images = []
     for path in paths:
-        image = pygame.image.load(path)
+        image = pygame.image.load(path).convert_alpha()
         size = [int(i * SCALE * scale) for i in image.get_rect().size]
         images.append(pygame.transform.scale(image, size))
     return images

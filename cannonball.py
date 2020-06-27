@@ -40,3 +40,4 @@ class Cannonball(Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = self.coords
         self.screen.blit(self.image, self.rect)
+        return self.rect

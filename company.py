@@ -3,6 +3,7 @@ import math
 from infantry import Infantry
 from settings import I_SPEED, I_RANGE, I_MORALE, I_MORALE_MIN, I_SIGHT, I_GAPY
 from settings import I_PANIC_TIME, I_PANIC_BAY, I_FIRE_ANGLE, I_GAPX, FB_SIZE
+from settings import blueImages, greenImages
 from flag import Flag
 from pygame import time
 import pygame
@@ -92,9 +93,13 @@ class Company():
         return string with name of file for id, used in testing
     """
 
-    def __init__(self, screen, angle, x, y, sizex, sizey, fil1, fil2, fil3,
-                 fileFlag, team, flags, play=True, defense=False):
+    def __init__(self, screen, angle, x, y, sizex, sizey, team, flags,
+                 play=True, defense=False):
         super().__init__()
+        if team == "green":
+            fil1, fil2, fil3, fileFlag = greenImages
+        elif team == "blue":
+            fil1, fil2, fil3, fileFlag = blueImages
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
         self.moving = False
@@ -373,13 +378,12 @@ class Company():
 
     def blitme(self):
         # print elements of Company
-        [infantry.blitme() for infantry in self.troops]
-        # if self.size > 0:
         self.flag.blitme()
         if self.showOrders > 1:
             self.bayonetButton.blitme()
             self.carreButton.blitme()
             self.lineButton.blitme()
+        return [infantry.blitme() for infantry in self.troops]
 
     def __str__(self):
         return self.id

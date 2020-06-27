@@ -4,6 +4,7 @@ from cavalry import Cavalry
 from settings import CV_SPEED, CV_MORALE, CV_MORALE_MIN, CV_FIRE_ANGLE
 from settings import CV_PANIC_TIME, CV_PANIC_BAY, CV_GAPX, CV_GAPY, CV_SIGHT
 from settings import CV_ANTI_CAV, CV_ACCEL, CV_RANGE
+from settings import blueCav, greenCav
 from flag import Flag
 from pygame import time
 import pygame
@@ -93,9 +94,13 @@ class Squadron():
         return string with name of file for id, used in testing
     """
 
-    def __init__(self, screen, angle, x, y, sizex, sizey, file1, file2,
-                 fileFlag, team, flags, play=True, defense=False):
+    def __init__(self, screen, angle, x, y, sizex, sizey, team, flags,
+                 play=True, defense=False):
         super().__init__()
+        if team == "green":
+            file1, file2, fileFlag = greenCav
+        elif team == "blue":
+            file1, file2, fileFlag = blueCav
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
         self.moving = False
