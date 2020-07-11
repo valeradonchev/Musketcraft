@@ -237,6 +237,7 @@ class Cannon(Sprite):
         self.rect.center = self.coords
         self.screen.blit(self.image, self.rect)
         if self.shot is not None:
-            rect = self.shot.blitme()
-            return rect, self.rect
-        return 0, self.rect
+            self.shot.blitme()
+        #     rect = self.shot.blitme()
+        #     return rect, self.rect
+        # return 0, self.rect

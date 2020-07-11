@@ -371,13 +371,15 @@ class Battery():
             self.flag.blitme()
         # if self.showOrders > 1:
             # self.bayonetButton.blitme()
-        rects = [man.blitme() for man in self.troops]
-        for cannon in self.cannons:
-            rect1, rect2 = cannon.blitme()
-            rects.append(rect2)
-            if rect1 != 0:
-                rects.append(rect1)
-        return rects
+        [man.blitme() for man in self.troops]
+        [cannon.blitme() for cannon in self.cannons]
+        # rects = [man.blitme() for man in self.troops]
+        # for cannon in self.cannons:
+        #     rect1, rect2 = cannon.blitme()
+        #     rects.append(rect2)
+        #     if rect1 != 0:
+        #         rects.append(rect1)
+        # return rects
 
     def __str__(self):
         return self.id

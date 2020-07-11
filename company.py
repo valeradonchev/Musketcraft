@@ -383,7 +383,8 @@ class Company():
             self.bayonetButton.blitme()
             self.carreButton.blitme()
             self.lineButton.blitme()
-        return [infantry.blitme() for infantry in self.troops]
+        [infantry.blitme() for infantry in self.troops]
+        # return [infantry.blitme() for infantry in self.troops]
 
     def __str__(self):
         return self.id
