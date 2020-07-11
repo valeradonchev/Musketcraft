@@ -184,10 +184,12 @@ class Squadron():
     @property
     def morale(self):
         # update chance to flee
-        allySize = sum([grp.size for grp in self.allies
-                        if self.distance(grp.coords) < CV_SIGHT])
-        enemySize = sum([grp.size for grp in self.enemies
-                         if self.distance(grp.coords) < CV_SIGHT])
+        allyDist = self.distanceMany([grp.coords for grp in self.allies])
+        allySize = sum([grp.size for grp, d in zip(self.allies, allyDist)
+                        if d < CV_SIGHT])
+        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+        enemySize = sum([grp.size for grp, d in zip(self.enemies, enemyDist)
+                         if d < CV_SIGHT])
         deathMorale = CV_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
         if allySize > 0:
             return CV_MORALE + deathMorale * enemySize / allySize
@@ -204,6 +206,9 @@ class Squadron():
     def distance(self, coords):
         # measure straight line distance Company to coords
         return np.linalg.norm(self.coords - coords)
+
+    def distanceMany(self, coords):
+        return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
 
     def stop(self):
         # stop Company, Infantry
@@ -251,9 +256,10 @@ class Squadron():
 
     def findTarget(self):
         # select target
-        for target in self.enemies:
+        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+        for target, d in zip(self.enemies, enemyDist):
             if self.target is None:
-                seen = self.distance(target.coords) <= CV_SIGHT
+                seen = d <= CV_SIGHT
                 if seen and target.size > 0 and self.allowShoot:
                     self.target = target
                     if self.moving:
@@ -354,8 +360,9 @@ class Squadron():
     def AIsupport(self):
         if self.play:
             return
-        for ally in self.allies:
-            canSee = self.distance(ally.coords) < CV_SIGHT
+        allyDist = self.distanceMany([grp.coords for grp in self.allies])
+        for ally, d in zip(self.allies, allyDist):
+            canSee = d < CV_SIGHT
             if self.idle and ally.target is not None and canSee:
                 self.AIcommand(ally.coords, True)
 

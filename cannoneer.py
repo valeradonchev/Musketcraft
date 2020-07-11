@@ -183,4 +183,3 @@ class Cannoneer(Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = self.center
         self.screen.blit(self.image, self.rect)
-        # return self.rect

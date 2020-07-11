@@ -6,14 +6,13 @@ from pygame.sprite import Sprite
 from pygame import time
 import random
 import numpy as np
-"figure out pandas"
 "test SummonEvent"
 "computer control"
 "retarget to closest"
 "troops can't move through each other"
 
 "cavalry should be injured without charge"
-"carre should take time to form, ai not form if haas target?"
+"carre should take time to form, ai not form if has target?"
 
 "sort out values in Settings"
 "update documentation"

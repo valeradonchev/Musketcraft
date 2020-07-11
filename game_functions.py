@@ -95,12 +95,8 @@ def update(screen, units, flags):
     [company.update() for company in units]
     # update images
     [company.blitme() for company in units]
-    # rects = [company.blitme() for company in units]
-    # rects = [rect for company in rects for rect in company]
-    # print(rects)
     # run AI
     [company.AIsupport() for company in units]
     [company.AIcarre() for company in units if hasattr(company, "AIcarre")]
     # draw screen
     pygame.display.flip()
-    # pygame.display.update(rects)

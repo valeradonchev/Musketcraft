@@ -190,10 +190,12 @@ class Battery():
     @property
     def morale(self):
         # update chance to flee
-        allySize = sum([grp.size for grp in self.allies
-                        if self.distance(grp.coords) < C_SIGHT])
-        enemySize = sum([grp.size for grp in self.enemies
-                         if self.distance(grp.coords) < C_SIGHT])
+        allyDist = self.distanceMany([grp.coords for grp in self.allies])
+        allySize = sum([grp.size for grp, d in zip(self.allies, allyDist)
+                        if d < C_SIGHT])
+        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+        enemySize = sum([grp.size for grp, d in zip(self.enemies, enemyDist)
+                         if d < C_SIGHT])
         deathMorale = C_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
         if allySize > 0:
             return C_MORALE + deathMorale * enemySize / allySize
@@ -205,6 +207,9 @@ class Battery():
     def distance(self, coords):
         # measure straight line distance Battery to coords
         return np.linalg.norm(self.coords - coords)
+
+    def distanceMany(self, coords):
+        return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
 
     def stop(self, moving=False):
         # stop Battery, Cannons
@@ -260,8 +265,9 @@ class Battery():
 
     def findTarget(self):
         # select target
-        for target in self.enemies:
-            melee = self.distance(target.coords) < C_MIN_RANGE
+        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+        for target, d in zip(self.enemies, enemyDist):
+            melee = d < C_MIN_RANGE
             if melee and target.size > 0:
                 self.target = None
                 [cannon.startPanic() for cannon in self.cannons]
@@ -269,7 +275,7 @@ class Battery():
                 self.panicTime = time.get_ticks()
                 return
             if self.target is None:
-                seen = self.distance(target.coords) <= C_SIGHT
+                seen = d <= C_SIGHT
                 if seen and target.size > 0 and self.allowShoot:
                     self.target = target
                     if self.moving:
@@ -360,8 +366,9 @@ class Battery():
     def AIsupport(self):
         if self.play:
             return
-        for ally in self.allies:
-            canSee = self.distance(ally.coords) < C_SIGHT
+        allyDist = self.distanceMany([grp.coords for grp in self.allies])
+        for ally, d in zip(self.allies, allyDist):
+            canSee = d < C_SIGHT
             if self.idle and ally.target is not None and canSee:
                 self.AIcommand(ally.coords, True)
 
@@ -373,13 +380,6 @@ class Battery():
             # self.bayonetButton.blitme()
         [man.blitme() for man in self.troops]
         [cannon.blitme() for cannon in self.cannons]
-        # rects = [man.blitme() for man in self.troops]
-        # for cannon in self.cannons:
-        #     rect1, rect2 = cannon.blitme()
-        #     rects.append(rect2)
-        #     if rect1 != 0:
-        #         rects.append(rect1)
-        # return rects
 
     def __str__(self):
         return self.id

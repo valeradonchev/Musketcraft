@@ -238,6 +238,3 @@ class Cannon(Sprite):
         self.screen.blit(self.image, self.rect)
         if self.shot is not None:
             self.shot.blitme()
-        #     rect = self.shot.blitme()
-        #     return rect, self.rect
-        # return 0, self.rect
