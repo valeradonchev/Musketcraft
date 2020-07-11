@@ -5,10 +5,10 @@ from company import Company
 from squadron import Squadron
 from battery import Battery
 from settings import blueCannon, greenCannon, blueCav, greenCav, blueImages
-from settings import greenImages
+import cProfile
 
 
-def check_events(color, events, units, screen, flags):
+def check_events(color, events, units, screen, flags, cprof):
     """ watch keyboard/mouse for events
 
     When close window button is pressed, exit the game. Other functionality
@@ -25,29 +25,31 @@ def check_events(color, events, units, screen, flags):
             if event.unicode == "z":
                 if color == "blue":
                     units.append(Company(screen, 0, *pygame.mouse.get_pos(),
-                                         3, 5, *blueImages, color, flags))
+                                         3, 5, color, flags))
                 if color == "green":
                     units.append(Company(screen, 0, *pygame.mouse.get_pos(),
-                                         3, 5, *greenImages, color, flags,
+                                         3, 5, color, flags,
                                          False))
             if event.unicode == "x":
                 if color == "blue":
                     units.append(Battery(screen, 0, *pygame.mouse.get_pos(),
-                                         3, *blueCannon, color, flags))
+                                         3, color, flags))
                 if color == "green":
                     units.append(Battery(screen, 0, *pygame.mouse.get_pos(),
-                                         3, *greenCannon, color, flags, False))
+                                         3, color, flags, False))
             if event.unicode == "c":
                 if color == "blue":
                     units.append(Squadron(screen, 0, *pygame.mouse.get_pos(),
-                                          2, 3, *blueCav, color, flags))
+                                          2, 3, color, flags))
                 if color == "green":
                     units.append(Squadron(screen, 0, *pygame.mouse.get_pos(),
-                                          2, 3, *greenCav, color, flags,
+                                          2, 3, color, flags,
                                           False))
             if event.unicode == "f":
                 units = []
                 flags = []
+            if event.unicode == "g":
+                cprof.print_stats('cumtime')
     for event in events:
         units = event.check(units)
     return color, units

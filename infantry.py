@@ -6,11 +6,13 @@ from pygame.sprite import Sprite
 from pygame import time
 import random
 import numpy as np
+"test SummonEvent"
 "computer control"
 "retarget to closest"
 "troops can't move through each other"
 
 "cavalry should be injured without charge"
+"carre should take time to form, ai not form if has target?"
 
 "sort out values in Settings"
 "update documentation"
@@ -119,6 +121,8 @@ class Infantry(Sprite):
         self.shiftt = math.atan2(shifty, shiftx)
         self.rect.center = coords + self.relatCoords
         self.center = np.array(self.rect.center, dtype=float)
+        self.oldCenter = self.center
+        self.oldCostume = self.costume
         self.velocity = np.array([0, 0], dtype=float)
         self.formed = False
         self.targetxy = np.array([-1, -1], dtype=float)
@@ -271,3 +275,4 @@ class Infantry(Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = self.center
         self.screen.blit(self.image, self.rect)
+        # return self.rect

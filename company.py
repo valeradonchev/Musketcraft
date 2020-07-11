@@ -3,6 +3,7 @@ import math
 from infantry import Infantry
 from settings import I_SPEED, I_RANGE, I_MORALE, I_MORALE_MIN, I_SIGHT, I_GAPY
 from settings import I_PANIC_TIME, I_PANIC_BAY, I_FIRE_ANGLE, I_GAPX, FB_SIZE
+from settings import blueImages, greenImages
 from flag import Flag
 from pygame import time
 import pygame
@@ -92,9 +93,13 @@ class Company():
         return string with name of file for id, used in testing
     """
 
-    def __init__(self, screen, angle, x, y, sizex, sizey, fil1, fil2, fil3,
-                 fileFlag, team, flags, play=True, defense=False):
+    def __init__(self, screen, angle, x, y, sizex, sizey, team, flags,
+                 play=True, defense=False):
         super().__init__()
+        if team == "green":
+            fil1, fil2, fil3, fileFlag = greenImages
+        elif team == "blue":
+            fil1, fil2, fil3, fileFlag = blueImages
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
         self.moving = False
@@ -187,10 +192,12 @@ class Company():
     @property
     def morale(self):
         # update chance to flee
-        allySize = sum([grp.size for grp in self.allies
-                        if self.distance(grp.coords) < I_SIGHT])
-        enemySize = sum([grp.size for grp in self.enemies
-                         if self.distance(grp.coords) < I_SIGHT])
+        allyDist = self.distanceMany([grp.coords for grp in self.allies])
+        allySize = sum([grp.size for grp, d in zip(self.allies, allyDist)
+                        if d < I_SIGHT])
+        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+        enemySize = sum([grp.size for grp, d in zip(self.enemies, enemyDist)
+                         if d < I_SIGHT])
         deathMorale = I_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
         if allySize > 0:
             return I_MORALE + deathMorale * enemySize / allySize
@@ -206,6 +213,11 @@ class Company():
     def distance(self, coords):
         # measure straight line distance Company to coords
         return np.linalg.norm(self.coords - coords)
+
+    def distanceMany(self, coords):
+        if len(coords) == 0:
+            return []
+        return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
 
     def stop(self):
         # stop Company, Infantry
@@ -257,9 +269,10 @@ class Company():
 
     def findTarget(self):
         # select target
-        for target in self.enemies:
+        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+        for target, d in zip(self.enemies, enemyDist):
             if self.target is None:
-                seen = self.distance(target.coords) <= I_SIGHT
+                seen = d <= I_SIGHT
                 if seen and target.size > 0 and self.allowShoot:
                     self.target = target
                     if self.moving:
@@ -357,13 +370,14 @@ class Company():
     def AIsupport(self):
         if self.play:
             return
-        for ally in self.allies:
-            canSee = self.distance(ally.coords) < I_SIGHT
+        allyDist = self.distanceMany([grp.coords for grp in self.allies])
+        for ally, d in zip(self.allies, allyDist):
+            canSee = d < I_SIGHT
             if self.idle and ally.target is not None and canSee:
                 self.AIcommand(ally.coords, True)
 
     def AIcarre(self):
-        if self.play:
+        if self.play or self.target is not None:
             return
         for enmy in self.enemies:
             if hasattr(enmy, "chargeStart") and enmy.target == self:
@@ -373,13 +387,12 @@ class Company():
 
     def blitme(self):
         # print elements of Company
-        [infantry.blitme() for infantry in self.troops]
-        # if self.size > 0:
         self.flag.blitme()
         if self.showOrders > 1:
             self.bayonetButton.blitme()
             self.carreButton.blitme()
             self.lineButton.blitme()
+        [infantry.blitme() for infantry in self.troops]
 
     def __str__(self):
         return self.id

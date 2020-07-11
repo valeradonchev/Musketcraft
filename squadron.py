@@ -4,6 +4,7 @@ from cavalry import Cavalry
 from settings import CV_SPEED, CV_MORALE, CV_MORALE_MIN, CV_FIRE_ANGLE
 from settings import CV_PANIC_TIME, CV_PANIC_BAY, CV_GAPX, CV_GAPY, CV_SIGHT
 from settings import CV_ANTI_CAV, CV_ACCEL, CV_RANGE
+from settings import blueCav, greenCav
 from flag import Flag
 from pygame import time
 import pygame
@@ -93,9 +94,13 @@ class Squadron():
         return string with name of file for id, used in testing
     """
 
-    def __init__(self, screen, angle, x, y, sizex, sizey, file1, file2,
-                 fileFlag, team, flags, play=True, defense=False):
+    def __init__(self, screen, angle, x, y, sizex, sizey, team, flags,
+                 play=True, defense=False):
         super().__init__()
+        if team == "green":
+            file1, file2, fileFlag = greenCav
+        elif team == "blue":
+            file1, file2, fileFlag = blueCav
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
         self.moving = False
@@ -179,10 +184,12 @@ class Squadron():
     @property
     def morale(self):
         # update chance to flee
-        allySize = sum([grp.size for grp in self.allies
-                        if self.distance(grp.coords) < CV_SIGHT])
-        enemySize = sum([grp.size for grp in self.enemies
-                         if self.distance(grp.coords) < CV_SIGHT])
+        allyDist = self.distanceMany([grp.coords for grp in self.allies])
+        allySize = sum([grp.size for grp, d in zip(self.allies, allyDist)
+                        if d < CV_SIGHT])
+        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+        enemySize = sum([grp.size for grp, d in zip(self.enemies, enemyDist)
+                         if d < CV_SIGHT])
         deathMorale = CV_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
         if allySize > 0:
             return CV_MORALE + deathMorale * enemySize / allySize
@@ -199,6 +206,9 @@ class Squadron():
     def distance(self, coords):
         # measure straight line distance Company to coords
         return np.linalg.norm(self.coords - coords)
+
+    def distanceMany(self, coords):
+        return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
 
     def stop(self):
         # stop Company, Infantry
@@ -246,9 +256,10 @@ class Squadron():
 
     def findTarget(self):
         # select target
-        for target in self.enemies:
+        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+        for target, d in zip(self.enemies, enemyDist):
             if self.target is None:
-                seen = self.distance(target.coords) <= CV_SIGHT
+                seen = d <= CV_SIGHT
                 if seen and target.size > 0 and self.allowShoot:
                     self.target = target
                     if self.moving:
@@ -349,8 +360,9 @@ class Squadron():
     def AIsupport(self):
         if self.play:
             return
-        for ally in self.allies:
-            canSee = self.distance(ally.coords) < CV_SIGHT
+        allyDist = self.distanceMany([grp.coords for grp in self.allies])
+        for ally, d in zip(self.allies, allyDist):
+            canSee = d < CV_SIGHT
             if self.idle and ally.target is not None and canSee:
                 self.AIcommand(ally.coords, True)
 
