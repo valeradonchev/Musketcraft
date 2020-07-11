@@ -52,6 +52,8 @@ def check_events(color, events, units, screen, flags, cprof):
                 cprof.print_stats('cumtime')
     for event in events:
         units = event.check(units)
+        if event.triggered:
+            events.remove(event)
     return color, units
 
 

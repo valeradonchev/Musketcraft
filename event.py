@@ -9,16 +9,20 @@ class SpawnEvent():
         self.count = count
         self.spawn = spawn
         self.radius = radius
+        self.triggered = False
 
-    def dist(self, coords):
-        # measure straight line distance Company to coords
-        return np.linalg.norm(self.coords - coords)
+    def distanceMany(self, coords):
+        if len(coords) == 0:
+            return []
+        return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
 
     def check(self, units):
         detect = [un for un in units if un.team == self.target]
-        number = sum([1 for u in detect if self.dist(u.coords) < self.radius])
+        detDist = self.distanceMany([un.coords for un in detect])
+        number = sum([1 for d in detDist if d < self.radius])
         if number >= self.count:
             for unit in self.spawn:
                 unit.AIcommand(self.coords, True)
+                self.triggered = True
             return units + self.spawn
         return units

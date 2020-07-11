@@ -6,7 +6,6 @@ from pygame.sprite import Sprite
 from pygame import time
 import random
 import numpy as np
-"test SummonEvent"
 "computer control"
 "retarget to closest"
 "troops can't move through each other"
