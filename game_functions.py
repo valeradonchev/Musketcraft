@@ -64,12 +64,8 @@ def update(screen, units, flags):
     ----------
     screen : pygame.Surface
         Surface on which sprites are drawn
-    scene : str
-        part of game to be displayed
-    blueInfantry : Company list
-        all Companies on blue team
-    redInfantry : Company list
-        all Companies on red team
+    units : list of Company, Squadron, Battery
+        all unit formations
     flags : Flag list
         all Flag objects
 
@@ -77,10 +73,8 @@ def update(screen, units, flags):
     --------
     screen
         clear screen to default color
-    blueInfantry
-        update position, velocity, target, direction, alive Infantry of Company
-    redInfantry
-        update position, velocity, target, direction, alive Infantry of Company
+    units
+        update position, velocity, target, direction, alive units in formations
     """
     # redraw screen
     screen.fill(BG_COLOR)

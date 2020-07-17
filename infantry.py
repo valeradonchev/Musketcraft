@@ -13,6 +13,8 @@ import numpy as np
 "cavalry should be injured without charge"
 "carre should take time to form, ai not form if has target?"
 
+"make ratios of units better"
+"rework formation/idNum"
 "sort out values in Settings"
 "update documentation"
 "slow rotation speed"
@@ -36,19 +38,25 @@ class Infantry(Sprite):
     ----------
     screen : pygame.Surface
         Surface on which Infantry is drawn
-    ready : str
-        path to image of Infantry when not shooting
-    firing : str
-        path to image of Infantry when shooting
+    ready : pygame.image
+        image of Infantry when not shooting
+    firing : pygame.image
+        image of Infantry when shooting
+    bayonet : pygame.image
+        image of Infantry when in melee
+    costume : pygame.image
+        current image used by Infantry
     angle : float
         angle in radians of Infantry to x-axis
+    formationAngle : float
+        angle in radians Infantry has to turn for current formation
     rect : pygame.rect.Rect
         rectangle of Infantry Surface
     shiftr : float, > 0
         distance Infantry keeps from center of Company when in formation
     shiftt : float
         angle in radians to x-axis of line from Company center to Infantry
-    center : float 1-D numpy.ndarray [2], >= 0
+    coords : float 1-D numpy.ndarray [2], >= 0
         coords of Infantry as float to avoid rounding errors
     velocity : float 1-D numpy.ndarray [2]
         velocity of Infantry in x, y directions
@@ -64,11 +72,15 @@ class Infantry(Sprite):
         time in milliseconds when Infantry fired, 0 = no time saved
     panicAngle : float
         angle in radians in which Infantry moves when panicking
+    formation : str
+        current formation of Infantry/Company
+    idNum : int, >= 0
+        ordinal number of Infantry, used to find position in Company
+    size : int, > 0
+        max number of Infantry in Company
 
     Properties
     ----------
-    orig : pygame.Surface
-        original image of infantry from which rotations are derived
     relatCoords : float 1-D numpy.ndarray [2]
         coords of Infantry relative to Company center
     image : pygame.Surface
@@ -76,6 +88,10 @@ class Infantry(Sprite):
 
     Methods
     -------
+    formCarre
+        move Infantry into carre formation
+    formLine
+        move Infantry into line formation
     form
         move Infantry into formation for moving to flag/firing
     setTarget
@@ -119,9 +135,7 @@ class Infantry(Sprite):
         self.shiftr = math.hypot(shiftx, shifty)
         self.shiftt = math.atan2(shifty, shiftx)
         self.rect.center = coords + self.relatCoords
-        self.center = np.array(self.rect.center, dtype=float)
-        self.oldCenter = self.center
-        self.oldCostume = self.costume
+        self.coords = np.array(self.rect.center, dtype=float)
         self.velocity = np.array([0, 0], dtype=float)
         self.formed = False
         self.targetxy = np.array([-1, -1], dtype=float)
@@ -130,7 +144,7 @@ class Infantry(Sprite):
         self.firedOn = 0
         self.panicAngle = 0
         self.formation = "Line"
-        self.i = i
+        self.idNum = i
         self.size = size
 
     @property
@@ -147,19 +161,21 @@ class Infantry(Sprite):
         return pygame.transform.rotate(self.costume, degrees)
 
     def formCarre(self, sizex, sizey):
-        if self.i // sizey == sizex - 1:
+        # move Infantry into carre formation
+        if self.idNum // sizey == sizex - 1:
             self.formation = "Carre"
-        if self.i // sizey == 0:
+        if self.idNum // sizey == 0:
             self.formationAngle = math.pi
             self.formation = "Carre"
-        if self.i % sizey == 0:
+        if self.idNum % sizey == 0:
             self.formationAngle = math.pi / 2
             self.formation = "Carre"
-        if self.i % sizey == sizey - 1:
+        if self.idNum % sizey == sizey - 1:
             self.formationAngle = 3 * math.pi / 2
             self.formation = "Carre"
 
     def formLine(self):
+        # move Infantry into line formation
         self.formationAngle = 0
         self.formation = "Line"
 
@@ -171,7 +187,7 @@ class Infantry(Sprite):
             angleDiff = abs(oldAngle - angle)
             if 0.5 * math.pi < angleDiff < 1.5 * math.pi:
                 self.shiftr *= -1
-                self.i = self.size - self.i - 1
+                self.idNum = self.size - self.idNum - 1
             self.angle = angle
             self.setTarget(coords)
         if self.distance(self.targetxy) > 0:
@@ -194,11 +210,11 @@ class Infantry(Sprite):
         # measure straight line distance Infantry to coords, 0 if no target
         if coords[0] == -1:
             return 0
-        return np.linalg.norm(self.center - coords)
+        return np.linalg.norm(self.coords - coords)
 
     def lookAt(self, target):
         # point at coordinates
-        distance = target - self.center
+        distance = target - self.coords
         self.angle = math.atan2(-distance[1], distance[0])
 
     def setSpeed(self, speed):
@@ -231,7 +247,7 @@ class Infantry(Sprite):
 
     def update(self, allowShoot=False, bayonet=False, dist=I_RANGE):
         # move Infantry based on speed, fire at target if possible
-        self.center += self.velocity
+        self.coords += self.velocity
         self.fire(allowShoot, bayonet, dist)
 
     def panic(self):
@@ -272,6 +288,6 @@ class Infantry(Sprite):
     def blitme(self):
         # draw Infantry on screen
         self.rect = self.image.get_rect()
-        self.rect.center = self.center
+        self.rect.center = self.coords
         self.screen.blit(self.image, self.rect)
         # return self.rect

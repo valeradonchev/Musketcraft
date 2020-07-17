@@ -18,7 +18,7 @@ from cannoneer import Cannoneer
 
 
 class Battery():
-    """Small unit of several Cannon controlled by Flag
+    """Small unit of several Cannon and Cannoneer controlled by Flag
 
     Attributes
     ----------
@@ -32,14 +32,18 @@ class Battery():
         angle in radians of Battery to x-axis.
     oldAngle : float
         angle in radians of Battery to x-axis saved from last forming up
+    cannons : list of Cannon
+        list of sprites representing cannons in Battery
+    troops : list of Cannoneer
+        list of sprites representing men manning cannons
     flag : Flag
         sprite that user interacts with to give commands to Battery
     target : Battery or None
         enemy Battery which this Battery is aiming at
     maxSize : int, >= 0
         number of Cannon that Battery starts with
-    morale : int
-        percent chance of Battery entering panic on losing next Cannon
+    sizex : int, >= 0
+        number of rows in Battery
     panicTime : int, >= 0
         time in milliseconds when Battery started panicking
     attackMove : bool
@@ -48,26 +52,48 @@ class Battery():
         stage of selecting orders
     play : bool
         whether Battery can be given orders by player
+    team : str
+        team Battery is on for friend-foe detection
+    defense : bool
+        whether unit will ignore AI move orders
+    allies : list of Battery, Company, Squadron
+        list of all units with same team value
+    enemies : list of Battery, Company, Squadron
+        list of all units with different team value
 
     Properties
     ----------
     size : int, >= 0
-        number of Cannon currently contained in Battery
+        number of Cannoneers contained in Battery
+    cannonSize : int, >= 0
+        number of Cannons and Cannoneers contained in Battery
     formed : int, >= 0
         count of Cannon in formation
+    idle : bool
+        whether AI can move this Battery
     velocity : float 1-D numpy.ndarray [2]
         velocity of Battery in vertical and horizontal axes
     allowShoot : bool
         whether Battery will currently aim at targets
     range : int, >= 0
         distance in pixels which Batteries will set enemies as target
+    aimVars : list of vars
+        variables passed to Cannon, Cannoneers for aim funciton
+    formVars :
+        variables passed to Cannon, Cannoneers for form function
+    morale : int
+        percent chance of Battery entering panic on losing next Cannon
 
     Methods
     -------
+    unitInit
+        set allies and enemies
     setSpeed
         set speed to min of default, distance to coords
     distance
         measure straight line distance Battery to coords
+    distanceMany
+        measure straight line distance Battery to list of coords
     stop
         stop Battery, Cannon
     update
@@ -76,21 +102,27 @@ class Battery():
         move Battery and Cannon to flag
     lookAt
         set rotation to angle from current center to new point
+    findTarget
+        select enemy as target
     aim
-        select target, turn toward it
+        turn toward selected target
     getHit
-        kill own Cannon when shot
-    updateMorale
-        update chance to flee
+        kill own Cannoneer when shot
+    getShelled
+        kill own Cannoneer hit by Cannonball
     orders
         give orders other than move for Battery
+    AIcommand
+        orders Battery to move to coords
+    AIsupport
+        move to visible allies in combat
     blitme
         print elements of Battery
     __str__
         return string with name of file for id, used in testing
     """
 
-    def __init__(self, screen, angle, x, y, sizex, team, flags, play=True,
+    def __init__(self, screen, angle, x, y, sizey, team, flags, play=True,
                  defense=False):
         super().__init__()
         if team == "green":
@@ -102,15 +134,14 @@ class Battery():
         self.moving = False
         self.angle = angle
         self.oldAngle = self.angle
-        # add infantry to company
         self.cannons = []
         self.troops = []
-        for i in range(sizex):
+        for i in range(sizey):
             """ x displacement from center of Battery based on count
-            shiftx increases with count with a period of sizex, creating
-            a row of soldiers with a length of sizex
+            shiftx increases with count with a period of sizey, creating
+            a row of soldiers with a length of sizey
             """
-            shifty = C_GAPY * ((i % sizex) - sizex // 2)
+            shifty = C_GAPY * ((i % sizey) - sizey // 2)
             shiftx = 0
             self.cannons.append(Cannon(screen, angle, shiftx, shifty,
                                        file1, file2, fileBall, team,
@@ -123,19 +154,20 @@ class Battery():
         self.flag = Flag(screen, (x, y), fileFlag, play)
         flags.append(self.flag)
         self.target = None
-        self.maxSize = sizex
+        self.maxSize = sizey
+        self.sizey = sizey
         self.panicTime = 0
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
         # self.bayonetButton = Button(screen, "Bayonets")
         self.play = play
         self.team = team
-        self.sizex = sizex
+        self.defense = defense
         # used to id object for testing, not meant to be seen/used
         self.id = file1
-        self.defense = defense
 
     def unitInit(self, units):
+        # set allies and enemies
         self.enemies = [grp for grp in units if grp.team != self.team]
         self.allies = [grp for grp in units if grp.team == self.team]
 
@@ -175,7 +207,7 @@ class Battery():
     @property
     def range(self):
         # distance in pixels which Companies will set enemies as target
-        return (C_RANGE - (self.sizex // 2 + 1) * C_GAPY)
+        return (C_RANGE - (self.sizey // 2 + 1) * C_GAPY)
 
     @property
     def aimVars(self):
@@ -283,7 +315,7 @@ class Battery():
                         self.stop()
 
     def aim(self):
-        # select target, turn toward it
+        # turn toward selected target
         if self.size == 0 or self.panicTime != 0:
             return
         self.findTarget()
@@ -360,10 +392,12 @@ class Battery():
             self.showOrders = 0
 
     def AIcommand(self, coords, attackMove=False):
+        # orders Battery to move to coords
         self.flag.coords = coords
         self.flag.attackMove = attackMove
 
     def AIsupport(self):
+        # move to visible allies in combat
         if self.play:
             return
         allyDist = self.distanceMany([grp.coords for grp in self.allies])

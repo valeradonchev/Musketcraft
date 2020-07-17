@@ -11,6 +11,32 @@ class Cannonball(Sprite):
     Parents
     -------
     pygame.sprite.Sprite
+
+    Attributes
+    ----------
+    screen : pygame.Surface
+        Surface on which Infantry is drawn
+    image : pygame.image
+        current image used by Cannonball
+    angle : float
+        angle in radians of Cannonball to x-axis
+    coords  : float 1-D numpy.ndarray [2], >= 0
+        coords of Cannonball as float to avoid rounding errors
+    velocity : float 1-D numpy.ndarray [2]
+        velocity of Cannonball in x, y directions
+    rect : pygame.rect.Rect
+        rectangle of Cannonball Surface
+    travelled : float, >= 0
+        distance travelled by Cannonball
+    enemies : list of Battery, Company, Squadron
+        list of all units with different team value
+
+    Methods
+    -------
+    update
+        move Cannonball, kill enemies in contact, remove at max distance
+    blitme
+        draw Cannonball on screen
     """
 
     def __init__(self, screen, angle, file, coords, enemies):
@@ -27,6 +53,7 @@ class Cannonball(Sprite):
         self.enemies = enemies
 
     def update(self, cannon):
+        # move Cannonball, kill enemies in contact, remove at max distance
         for company in self.enemies:
             if any([self.rect.colliderect(nt.rect) for nt in company.troops]):
                 company.getShelled(self)
@@ -36,7 +63,7 @@ class Cannonball(Sprite):
             cannon.shot = None
 
     def blitme(self):
-        # draw Cannon on screen
+        # draw Cannonball on screen
         self.rect = self.image.get_rect()
         self.rect.center = self.coords
         self.screen.blit(self.image, self.rect)

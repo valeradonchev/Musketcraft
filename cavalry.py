@@ -18,55 +18,55 @@ class Cavalry(Sprite):
     Attributes
     ----------
     screen : pygame.Surface
-        Surface on which Infantry is drawn
-    ready : str
-        path to image of Infantry when not shooting
-    firing : str
-        path to image of Infantry when shooting
+        Surface on which Cavalry is drawn
+    ready : pygame.image
+        image of Cavalry when not shooting
+    slashing : pygame.image
+        image of Cavalry when slashing
+    costume : pygame.image
+        current image used by Cavalry
     angle : float
-        angle in radians of Infantry to x-axis
+        angle in radians of Cavalry to x-axis
     rect : pygame.rect.Rect
-        rectangle of Infantry Surface
+        rectangle of Cavalry Surface
     shiftr : float, > 0
-        distance Infantry keeps from center of Company when in formation
+        distance Cavalry keeps from center of Squadron when in formation
     shiftt : float
-        angle in radians to x-axis of line from Company center to Infantry
+        angle in radians to x-axis of line from Squadron center to Cavalry
     center : float 1-D numpy.ndarray [2], >= 0
-        coords of Infantry as float to avoid rounding errors
+        coords of Cavalry as float to avoid rounding errors
     velocity : float 1-D numpy.ndarray [2]
-        velocity of Infantry in x, y directions
+        velocity of Cavalry in x, y directions
     formed : bool
-        whether Infantry is in formation
+        whether Cavalry is in formation
     targetxy : float 1-D numpy.ndarray [2], >= 0
-        coords where Infantry is moving to, target[0] = -1 when no target
+        coords where Cavalry is moving to, target[0] = -1 when no target
     target : pygame.Group or None
-        enemy which Infantry is aiming at
+        enemy which Cavalry is aiming at
     aimedOn : int, > 0
-        time in milliseconds when Infantry aimed, 0 = no time saved
+        time in milliseconds when Cavalry aimed, 0 = no time saved
     firedOn : int, > 0
-        time in milliseconds when Infantry fired, 0 = no time saved
+        time in milliseconds when Cavalry fired, 0 = no time saved
     panicAngle : float
-        angle in radians in which Infantry moves when panicking
+        angle in radians in which Cavalry moves when panicking
 
     Properties
     ----------
-    orig : pygame.Surface
-        original image of infantry from which rotations are derived
     relatCoords : float 1-D numpy.ndarray [2]
-        coords of Infantry relative to Company center
+        coords of Cavalry relative to Squadron center
     image : pygame.Surface
-        image rotated to face current Infantry direction
+        image rotated to face current Cavalry direction
 
     Methods
     -------
     form
-        move Infantry into formation for moving to flag/firing
+        move Cavalry into formation for moving to flag/firing
     setTarget
-        set targetxy based on targeted coords, shift from center of Company
+        set targetxy based on targeted coords, shift from center of Squadron
     move
         point at targetxy, move to targetxy
     distance
-        measure straight line distance Infantry to coords, 0 if negative coords
+        measure straight line distance Cavalry to coords, 0 if negative coords
     lookAt
         point at coordinates
     setSpeed
@@ -76,15 +76,15 @@ class Cavalry(Sprite):
     aim
         set target, point at target
     update
-        move Infantry based on speed, fire at target if possible
+        move Cavalry based on speed, fire at target if possible
     panic
-        move Infantry in randomly determined direction while panicking
+        move Cavalry in randomly determined direction while panicking
     startPanic
-        set direction Infantry moves away in when panicking
+        set direction Cavalry moves away in when panicking
     fire
         fire when target isn't None, reload after firing
     blitme
-        draw Infantry on screen
+        draw Cavalry on screen
 
     """
 

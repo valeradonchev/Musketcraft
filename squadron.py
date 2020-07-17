@@ -12,84 +12,106 @@ import random
 import numpy as np
 from button import Button
 
-"click on any Infantry - bring up orders: bayonets, carre, etc."
-
 
 class Squadron():
-    """Small unit of several Infantry controlled by Flag
+    """Small unit of several Cavalry controlled by Flag
 
     Attributes
     ----------
     coords : float 1-D numpy.ndarray [2], >=0
-        coords of center of Company
+        coords of center of Squadron
     speed : float, >=0
-        absolute velocity of Company
+        absolute velocity of Squadron
     moving : bool
-        whether Company is moving, including marching and forming up
+        whether Squadron is moving, including marching and forming up
     angle : float
-        angle in radians of Company to x-axis.
+        angle in radians of Squadron to x-axis.
     oldAngle : float
-        angle in radians of Company to x-axis saved from last forming up
+        angle in radians of Squadron to x-axis saved from last forming up
+    troops : list of Cavalry
+        list of sprites representing troops in Squadron
     flag : Flag
-        sprite that user interacts with to give commands to Company
-    target : Company or None
-        enemy Company which this Company is aiming at
+        sprite that user interacts with to give commands to Squadron
+    target : Squadron or None
+        enemy Squadron which this Squadron is aiming at
     maxSize : int, >= 0
-        number of Infantry that Company starts with
+        number of Cavalry that Squadron starts with
     sizey : int, >= 0
-        number of rows of Infantry
-    morale : int
-        percent chance of Company entering panic on losing next Infantry
+        number of rows of Cavalry
     panicTime : int, >= 0
-        time in milliseconds when Company started panicking
-    attackMove : bool
-        whether Company prioritizes aiming at target over moving
+        time in milliseconds when Squadron started panicking
     showOrders : int
         stage of selecting orders
-    bayonetButton : Button
-        button user presses to command Company to charge enemy with bayonets
-    bayonets : bool
-        whether Infantry will charge enemies with bayonets
+    chargeStart : int
+        when Squadron started charging at target
     play : bool
-        whether Company can be given orders by player
+        whether Squadron can be given orders by player
+    team : str
+        team Squadron is on for friend-foe detection
+    defense : bool
+        whether unit will ignore AI move orders
+    allies : list of Battery, Squadron, Squadron
+        list of all units with same team value
+    enemies : list of Battery, Squadron, Squadron
+        list of all units with different team value
 
     Properties
     ----------
     size : int, >= 0
-        number of Infantry currently contained in Company
+        number of Cavalry currently contained in Squadron
     formed : int, >= 0
-        count of Infantry in formation
+        count of Cavalry in formation
+    idle : bool
+        whether AI can move this Squadron
     velocity : float 1-D numpy.ndarray [2]
-        velocity of Company in vertical and horizontal axes
+        velocity of Squadron in vertical and horizontal axes
     allowShoot : bool
-        whether Company will currently aim at targets
+        whether Squadron will currently aim at targets
     range : int, >= 0
-        distance in pixels which Companies will set enemies as target
+        distance in pixels which Squadrons will set enemies as target
+    aimVars : list of vars
+        variables passed to Cavalry for aim funciton
+    formVars :
+        variables passed to Cavalry for form function
+    morale : int
+        percent chance of Squadron entering panic on losing next Cavalry
 
     Methods
     -------
+    unitInit
+        set allies and enemies
     setSpeed
         set speed to min of default, distance to coords
     distance
-        measure straight line distance Company to coords
+        measure straight line distance Squadron to coords
+    distanceMany
+        measure straight line distance Squadron to list of coords
     stop
-        stop Company, Infantry
+        stop Squadron, Cavalry
     update
-        move Company, update Infantry, panic if necessary
+        move Squadron, update Cavalry, panic if necessary
     follow
-        move Company and Infantry to flag
+        move Squadron and Cavalry to flag
     lookAt
         set rotation to angle from current center to new point
+    findTarget
+        select enemy as target
     aim
-        select target, turn toward it
+        turn toward selected target
+    hitBayonets
+        take losses from defended enemies
     getHit
-        kill own Infantry when shot
-    updateMorale
-        update chance to flee
+        kill own Cavalry when shot
+    getShelled
+        kill own Cavalry hit by cannonball
     orders
-        give orders other than move for Company
+        give orders other than move for Squadron
+    AIcommand
+        orders company to move to coords
+    AIsupport
+        move to visible allies in combat
     blitme
-        print elements of Company
+        print elements of Squadron
     __str__
         return string with name of file for id, used in testing
     """
@@ -129,46 +151,48 @@ class Squadron():
         self.showOrders = 0
         # self.bayonetButton = Button(screen, "Bayonets")
         # self.bayonets = False
+        self.chargeStart = 0
         self.play = play
+        self.defense = defense
         self.team = team
         # used to id object for testing, not meant to be seen/used
         self.id = file1
-        self.chargeStart = 0
-        self.defense = defense
 
     def unitInit(self, units):
+        # set allies and enemies
         self.enemies = [grp for grp in units if grp.team != self.team]
         self.allies = [grp for grp in units if grp.team == self.team]
 
     @property
     def size(self):
-        # number of Infantry currently contained in Company
+        # number of Cavalry currently contained in Squadron
         return len(self.troops)
 
     @property
     def formed(self):
-        # count of Infantry in formation
+        # count of Cavalry in formation
         return sum([infantry.formed for infantry in self.troops])
 
     @property
     def idle(self):
+        # whether AI can move this Squadron
         return not self.defense and self.target is None and not self.moving
 
     @property
     def velocity(self):
-        # vertical, horizontal velocity of Company
+        # vertical, horizontal velocity of Squadron
         velocityX = self.speed * math.cos(self.angle)
         velocityY = -self.speed * math.sin(self.angle)
         return np.array([velocityX, velocityY], dtype=float)
 
     @property
     def allowShoot(self):
-        # whether Company will currently aim at targets
+        # whether Squadron will currently aim at targets
         return not self.moving or self.flag.attackMove
 
     @property
     def range(self):
-        # distance in pixels which Companies will set enemies as target
+        # distance in pixels which Squadron will set enemies as target
         return CV_SPEED
 
     @property
@@ -204,20 +228,21 @@ class Squadron():
         self.speed = min(speed, self.distance(coords))
 
     def distance(self, coords):
-        # measure straight line distance Company to coords
+        # measure straight line distance Squadron to coords
         return np.linalg.norm(self.coords - coords)
 
     def distanceMany(self, coords):
+        # measure straight line distance Squadron to list of coords
         return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
 
     def stop(self):
-        # stop Company, Infantry
+        # stop Squadron, Cavalry
         self.speed = 0
         [infantry.stop() for infantry in self.troops]
         self.moving = False
 
     def update(self):
-        # move Company, update Infantry, panic if necessary
+        # move Squadron, update Cavalry, panic if necessary
         if self.panicTime != 0:
             [infantry.panic() for infantry in self.troops]
             if time.get_ticks() - self.panicTime > CV_PANIC_TIME:
@@ -227,7 +252,7 @@ class Squadron():
             [infantry.update(self.allowShoot) for infantry in self.troops]
 
     def follow(self, flags):
-        # move Company and Infantry to flag
+        # move Squadron and Cavalry to flag
         if self.play and self.size > 0:
             self.flag.checkDrag(flags, self.coords)
         flagCoords = self.flag.coords
@@ -267,7 +292,7 @@ class Squadron():
                         self.stop()
 
     def aim(self):
-        # select target, turn toward it
+        # turn toward selected target
         if self.size == 0:
             return
         self.findTarget()
@@ -313,7 +338,7 @@ class Squadron():
                     self.troops.remove(cavalry)
 
     def getHit(self, bayonet=False):
-        # kill own Infantry when shot
+        # kill own Cavalry when shot
         if self.size == 0:
             return
         self.troops.remove(random.choice(self.troops))
@@ -323,7 +348,7 @@ class Squadron():
             self.panicTime = time.get_ticks()
 
     def getShelled(self, ball):
-        # kill own Infantry from Cannon roundshot
+        # kill own Cavalry from Cannon roundshot
         for unit in self.troops:
             if unit.rect.colliderect(ball.rect):
                 self.troops.remove(unit)
@@ -332,7 +357,7 @@ class Squadron():
             self.panicTime = time.get_ticks()
 
     def orders(self):
-        # give orders other than move for Company
+        # give orders other than move for Squadron
         if not self.play:
             return
         cover = [self.flag.rect, self.flag.moveButton.rect,
@@ -354,10 +379,12 @@ class Squadron():
             self.showOrders = 0
 
     def AIcommand(self, coords, attackMove=False):
+        # orders Squadron to move to coords
         self.flag.coords = coords
         self.flag.attackMove = attackMove
 
     def AIsupport(self):
+        # move to visible allies in combat
         if self.play:
             return
         allyDist = self.distanceMany([grp.coords for grp in self.allies])
@@ -367,7 +394,7 @@ class Squadron():
                 self.AIcommand(ally.coords, True)
 
     def blitme(self):
-        # print elements of Company
+        # print elements of Squadron
         [infantry.blitme() for infantry in self.troops]
         if self.size > 0:
             self.flag.blitme()

@@ -29,28 +29,42 @@ class Company():
         angle in radians of Company to x-axis.
     oldAngle : float
         angle in radians of Company to x-axis saved from last forming up
+    troops : list of Infantry
+        list of sprites representing troops in Company
     flag : Flag
         sprite that user interacts with to give commands to Company
     target : Company or None
         enemy Company which this Company is aiming at
     maxSize : int, >= 0
         number of Infantry that Company starts with
+    sizex : int, >= 0
+        number of troops in a row of Infantry
     sizey : int, >= 0
         number of rows of Infantry
-    morale : int
-        percent chance of Company entering panic on losing next Infantry
     panicTime : int, >= 0
         time in milliseconds when Company started panicking
-    attackMove : bool
-        whether Company prioritizes aiming at target over moving
     showOrders : int
         stage of selecting orders
     bayonetButton : Button
-        button user presses to command Company to charge enemy with bayonets
+        button pressed to command Company to charge enemy with bayonets
+    carreButton : Button
+        button pressed to command Company to form carre
+    lineButton : Button
+        button pressed to command Company to form line
     bayonets : bool
         whether Infantry will charge enemies with bayonets
     play : bool
         whether Company can be given orders by player
+    team : str
+        team Company is on for friend-foe detection
+    formation : String
+        formation of Company
+    defense : bool
+        whether unit will ignore AI move orders
+    allies : list of Battery, Company, Squadron
+        list of all units with same team value
+    enemies : list of Battery, Company, Squadron
+        list of all units with different team value
 
     Properties
     ----------
@@ -58,19 +72,31 @@ class Company():
         number of Infantry currently contained in Company
     formed : int, >= 0
         count of Infantry in formation
+    idle : bool
+        whether AI can move this Company
     velocity : float 1-D numpy.ndarray [2]
         velocity of Company in vertical and horizontal axes
     allowShoot : bool
         whether Company will currently aim at targets
     range : int, >= 0
         distance in pixels which Companies will set enemies as target
+    aimVars : list of vars
+        variables passed to Infantry for aim funciton
+    formVars :
+        variables passed to Infantry for form function
+    morale : int
+        percent chance of Company entering panic on losing next Infantry
 
     Methods
     -------
+    unitInit
+        set allies and enemies
     setSpeed
         set speed to min of default, distance to coords
     distance
         measure straight line distance Company to coords
+    distanceMany
+        measure straight line distance Company to list of coords
     stop
         stop Company, Infantry
     update
@@ -79,14 +105,26 @@ class Company():
         move Company and Infantry to flag
     lookAt
         set rotation to angle from current center to new point
+    findTarget
+        select enemy as target
     aim
-        select target, turn toward it
+        turn toward selected target
     getHit
         kill own Infantry when shot
-    updateMorale
-        update chance to flee
+    getShelled
+        kill own Infantry hit by cannonball
     orders
         give orders other than move for Company
+    formCarre
+        Company forms a carre
+    formLine
+        Company forms a line
+    AIcommand
+        orders Company to move to coords
+    AIsupport
+        move to visible allies in combat
+    AIcarre
+        form carre when idle and charged by cavalry
     blitme
         print elements of Company
     __str__
@@ -139,6 +177,7 @@ class Company():
         self.id = fil1
 
     def unitInit(self, units):
+        # set allies and enemies
         self.enemies = [grp for grp in units if grp.team != self.team]
         self.allies = [grp for grp in units if grp.team == self.team]
 
@@ -154,6 +193,7 @@ class Company():
 
     @property
     def idle(self):
+        # whether AI can move this Company
         return not self.defense and self.target is None and not self.moving
 
     @property
@@ -177,7 +217,7 @@ class Company():
 
     @property
     def aimVars(self):
-        # variables that are passed to Cavalry for aim funciton
+        # variables that are passed to Infantry for aim funciton
         if self.target is None:
             return self.target, self.angle, self.allowShoot
         else:
@@ -186,7 +226,7 @@ class Company():
 
     @property
     def formVars(self):
-        # variables that are passed to Cavalry for form function
+        # variables that are passed to Infantry for form function
         return self.angle, self.oldAngle, self.coords
 
     @property
@@ -215,6 +255,7 @@ class Company():
         return np.linalg.norm(self.coords - coords)
 
     def distanceMany(self, coords):
+        # measure straight line distance Battery to list of coords
         if len(coords) == 0:
             return []
         return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
@@ -241,6 +282,7 @@ class Company():
                                     self.distance(self.target.coords))
 
     def follow(self, flags):
+        # move Company and Infantry to flag
         if self.play:
             self.flag.checkDrag(flags, self.coords)
         flagCoords = self.flag.coords
@@ -280,7 +322,7 @@ class Company():
                         self.stop()
 
     def aim(self):
-        # select target, turn toward it
+        # turn toward selected target
         self.findTarget()
         if self.target is None:
             return
@@ -356,18 +398,22 @@ class Company():
             self.showOrders = 0
 
     def formCarre(self):
+        # Company forms a carre
         self.formation = "Carre"
         [inf.formCarre(self.sizex, self.sizey) for inf in self.troops]
 
     def formLine(self):
+        # Company forms a line
         self.formation = "Line"
         [inf.formLine() for inf in self.troops]
 
     def AIcommand(self, coords, attackMove=False):
+        # orders company to move to coords
         self.flag.coords = coords
         self.flag.attackMove = attackMove
 
     def AIsupport(self):
+        # move to visible allies in combat
         if self.play:
             return
         allyDist = self.distanceMany([grp.coords for grp in self.allies])
@@ -377,6 +423,7 @@ class Company():
                 self.AIcommand(ally.coords, True)
 
     def AIcarre(self):
+        # form carre when idle and charged by cavalry
         if self.play or self.target is not None:
             return
         for enmy in self.enemies:

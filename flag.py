@@ -13,9 +13,11 @@ class Flag:
     screen : pygame.Surface
         Surface on which Flag is drawn
     image : str
-        path to image of Flag
+        path to image of Flag - sqrt of SCALE is used for flag
     rect : pygame.rect.Rect
         rectangle of Flag Surface
+    coords : float 1-D numpy.ndarray [2], >=0
+        coords of center of Flag
     draggable : bool
         whether Flag can be dragged by user
     moveButton : Button
@@ -38,7 +40,6 @@ class Flag:
 
     def __init__(self, screen, coords, file, draggable):
         self.screen = screen
-        # self.image = pygame.image.load(file)
         size = [int(i / math.sqrt(SCALE)) for i in file.get_rect().size]
         self.image = pygame.transform.scale(file, size)
         self.rect = self.image.get_rect()

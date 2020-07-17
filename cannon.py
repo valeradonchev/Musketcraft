@@ -20,10 +20,14 @@ class Cannon(Sprite):
     ----------
     screen : pygame.Surface
         Surface on which Cannon is drawn
-    ready : str
-        path to image of Cannon when not shooting
-    firing : str
-        path to image of Cannon when shooting
+    ready : pygame.image
+        image of Cannon when not shooting
+    firing : pygame.image
+        image of Cannon when shooting
+    ball : pygame.image
+        image of Cannonball
+    costume : pygame.image
+        current image used by Cannon
     angle : float
         angle in radians of Cannon to x-axis
     rect : pygame.rect.Rect
@@ -32,7 +36,7 @@ class Cannon(Sprite):
         distance Cannon keeps from center of Battery when in formation
     shiftt : float
         angle in radians to x-axis of line from Battery center to Cannon
-    center : float 1-D numpy.ndarray [2], >= 0
+    coords : float 1-D numpy.ndarray [2], >= 0
         coords of Cannon as float to avoid rounding errors
     velocity : float 1-D numpy.ndarray [2]
         velocity of Cannon in x, y directions
@@ -51,8 +55,6 @@ class Cannon(Sprite):
 
     Properties
     ----------
-    orig : pygame.Surface
-        original image of Cannon from which rotations are derived
     relatCoords : float 1-D numpy.ndarray [2]
         coords of Cannon relative to Battery center
     image : pygame.Surface
