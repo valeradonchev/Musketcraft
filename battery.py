@@ -235,6 +235,8 @@ class Battery():
     def setSpeed(self, coords):
         # set speed to min of default, distance to coords
         self.speed = min(C_SPEED, self.distance(coords))
+        [cannon.setSpeed(self.speed) for cannon in self.cannons]
+        [man.setSpeed(self.speed) for man in self.troops]
 
     def distance(self, coords):
         # measure straight line distance Battery to coords
@@ -271,7 +273,8 @@ class Battery():
         if self.play and self.size > 0:
             self.flag.checkDrag(flags, self.coords)
         flagCoords = self.flag.coords
-        flagPlaced = self.flag.select == 0 and self.distance(flagCoords) > 0
+        flagPlaced = (self.flag.select == 0 and
+                      self.distance(flagCoords) > C_SPEED)
         if flagPlaced and (self.target is None or not self.flag.attackMove):
             if self.formed < self.cannonSize:
                 self.moving = True
@@ -279,10 +282,13 @@ class Battery():
                 [cannon.form(*self.formVars) for cannon in self.cannons]
                 [man.form(*self.formVars) for man in self.troops]
             else:
+                self.oldAngle = self.angle
                 self.setSpeed(flagCoords)
                 self.lookAt(flagCoords)
-                [cannon.setSpeed(self.speed) for cannon in self.cannons]
-                [man.setSpeed(self.speed) for man in self.troops]
+                if abs(self.oldAngle - self.angle) > C_FIRE_ANGLE:
+                    self.stop()
+                else:
+                    self.angle = self.oldAngle
         elif self.moving:
             self.oldAngle = self.angle
             self.stop()
@@ -337,13 +343,11 @@ class Battery():
                 self.stop()
         elif toTarget > self.range:
             self.flag.attackMove = True
-            self.setSpeed(self.target.coords)
             for cannon in self.cannons:
                 cannon.angle = self.angle
-                cannon.setSpeed(self.speed)
             for man in self.troops:
                 man.angle = self.angle
-                man.setSpeed(self.speed)
+            self.setSpeed(self.target.coords)
         else:
             self.stop()
             [cannon.aim(*self.aimVars) for cannon in self.cannons]

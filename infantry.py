@@ -9,11 +9,11 @@ import numpy as np
 "computer control"
 "retarget to closest"
 "troops can't move through each other"
+"make ratios of units better"
 
 "cavalry should be injured without charge"
 "carre should take time to form, ai not form if has target?"
 
-"make ratios of units better"
 "rework formation/idNum"
 "sort out values in Settings"
 "update documentation"
