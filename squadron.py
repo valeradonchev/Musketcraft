@@ -226,6 +226,7 @@ class Squadron():
         else:
             speed = (time.get_ticks() - self.chargeStart) // 100 * CV_ACCEL
         self.speed = min(speed, self.distance(coords))
+        [cavalry.setSpeed(self.speed) for cavalry in self.troops]
 
     def distance(self, coords):
         # measure straight line distance Squadron to coords
@@ -262,11 +263,10 @@ class Squadron():
             if self.formed < self.size:
                 self.moving = True
                 self.lookAt(flagCoords)
-                [infantry.form(*self.formVars) for infantry in self.troops]
+                [cavalry.form(*self.formVars) for cavalry in self.troops]
             else:
                 self.setSpeed(flagCoords)
                 self.lookAt(flagCoords)
-                [infantry.setSpeed(self.speed) for infantry in self.troops]
         elif self.moving:
             self.oldAngle = self.angle
             self.stop()
@@ -315,10 +315,9 @@ class Squadron():
             if toTarget > CV_RANGE and self.chargeStart == 0:
                 self.chargeStart = time.get_ticks()
             self.flag.attackMove = True
-            self.setSpeed(self.target.coords)
             for cavalry in self.troops:
                 cavalry.angle = self.angle
-                cavalry.setSpeed(self.speed)
+            self.setSpeed(self.target.coords)
         else:
             if self.chargeStart != 0:
                 self.hitBayonets()

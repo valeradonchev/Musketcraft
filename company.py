@@ -286,15 +286,21 @@ class Company():
         if self.play:
             self.flag.checkDrag(flags, self.coords)
         flagCoords = self.flag.coords
-        flagPlaced = self.flag.select == 0 and self.distance(flagCoords) > 0
+        flagPlaced = (self.flag.select == 0 and
+                      self.distance(flagCoords) > I_SPEED)
         if flagPlaced and (self.target is None or not self.flag.attackMove):
             if self.formed < self.size:
                 self.moving = True
                 self.lookAt(flagCoords)
                 [infantry.form(*self.formVars) for infantry in self.troops]
             else:
+                self.oldAngle = self.angle
                 self.setSpeed(flagCoords)
                 self.lookAt(flagCoords)
+                if abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
+                    self.stop()
+                else:
+                    self.angle = self.oldAngle
         elif self.moving:
             self.oldAngle = self.angle
             self.stop()
