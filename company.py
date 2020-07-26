@@ -1,8 +1,8 @@
 # import pygame
 import math
 from infantry import Infantry
-from settings import I_SPEED, I_RANGE, I_MORALE, I_MORALE_MIN, I_SIGHT, I_GAPY
-from settings import I_PANIC_TIME, I_PANIC_BAY, I_FIRE_ANGLE, I_GAPX, FB_SIZE
+from settings import I_SPEED, I_RANGE, I_SIGHT, I_GAPY, FB_SIZE, I_GAPX
+from settings import I_FIRE_ANGLE
 from settings import blueImages, greenImages
 from flag import Flag
 from pygame import time
@@ -15,7 +15,7 @@ from button import Button
 
 
 class Company():
-    """Small unit of several Infantry controlled by Flag
+    """large unit of several batallions controlled by Flag
 
     Attributes
     ----------
@@ -41,8 +41,6 @@ class Company():
         number of troops in a row of Infantry
     sizey : int, >= 0
         number of rows of Infantry
-    panicTime : int, >= 0
-        time in milliseconds when Company started panicking
     showOrders : int
         stage of selecting orders
     bayonetButton : Button
@@ -132,12 +130,12 @@ class Company():
     """
 
     def __init__(self, screen, angle, x, y, sizex, sizey, team, flags,
-                 play=True, defense=False):
+                 strength, play=True, defense=False):
         super().__init__()
         if team == "green":
-            fil1, fil2, fil3, fileFlag = greenImages
+            fil1, fil2, fileFlag = greenImages
         elif team == "blue":
-            fil1, fil2, fil3, fileFlag = blueImages
+            fil1, fil2, fileFlag = blueImages
         self.coords = np.array([x, y], dtype=float)
         self.speed = 0
         self.moving = False
@@ -158,11 +156,11 @@ class Company():
             shifty = I_GAPY * ((i % sizey) - sizey // 2)
             shiftx = I_GAPX * ((i // sizey) - sizex // 2)
             self.troops.append(Infantry(screen, angle, i, self.maxSize, shiftx,
-                                        shifty, fil1, fil2, fil3, self.coords))
+                                        shifty, strength, team, fil1, fil2,
+                                        self.coords))
         self.flag = Flag(screen, (x, y), fileFlag, play)
         flags.append(self.flag)
         self.target = None
-        self.panicTime = 0
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
         self.bayonetButton = Button(screen, "Bayonets")
@@ -180,6 +178,7 @@ class Company():
         # set allies and enemies
         self.enemies = [grp for grp in units if grp.team != self.team]
         self.allies = [grp for grp in units if grp.team == self.team]
+        [inf.unitInit(units) for inf in self.troops]
 
     @property
     def size(self):
@@ -229,19 +228,19 @@ class Company():
         # variables that are passed to Infantry for form function
         return self.angle, self.oldAngle, self.coords
 
-    @property
-    def morale(self):
-        # update chance to flee
-        allyDist = self.distanceMany([grp.coords for grp in self.allies])
-        allySize = sum([grp.size for grp, d in zip(self.allies, allyDist)
-                        if d < I_SIGHT])
-        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
-        enemySize = sum([grp.size for grp, d in zip(self.enemies, enemyDist)
-                         if d < I_SIGHT])
-        deathMorale = I_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
-        if allySize > 0:
-            return I_MORALE + deathMorale * enemySize / allySize
-        return 0
+    # @property
+    # def morale(self):
+    #     # update chance to flee
+    #     allyDist = self.distanceMany([grp.coords for grp in self.allies])
+    #     allySize = sum([grp.size for grp, d in zip(self.allies, allyDist)
+    #                     if d < I_SIGHT])
+    #     enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+    #     enemySize = sum([grp.size for grp, d in zip(self.enemies, enemyDist)
+    #                      if d < I_SIGHT])
+    #     deathMorale = I_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
+    #     if allySize > 0:
+    #         return I_MORALE + deathMorale * enemySize / allySize
+    #     return 0
 
     def setSpeed(self, coords):
         # set speed to min of default, distance to coords
@@ -268,18 +267,16 @@ class Company():
 
     def update(self):
         # move Company, update Infantry, panic if necessary
-        if self.panicTime != 0:
-            [infantry.panic() for infantry in self.troops]
-            if time.get_ticks() - self.panicTime > I_PANIC_TIME:
-                self.troops = []
-        else:
-            self.coords += self.velocity
-            for infantry in self.troops:
-                if self.target is None:
-                    infantry.update(self.allowShoot, self.bayonets)
-                else:
-                    infantry.update(self.allowShoot, self.bayonets,
-                                    self.distance(self.target.coords))
+        [inf.panic() for inf in self.troops if inf.panicTime != 0]
+        self.coords += self.velocity
+        for infantry in self.troops:
+            if infantry.size <= 0:
+                self.troops.remove(infantry)
+            elif self.target is None and infantry.panicTime == 0:
+                infantry.update(self.allowShoot, self.bayonets)
+            else:
+                infantry.update(self.allowShoot, self.bayonets,
+                                self.distance(self.target.coords))
 
     def follow(self, flags):
         # move Company and Infantry to flag
@@ -354,22 +351,18 @@ class Company():
             self.stop()
             [infantry.aim(*self.aimVars) for infantry in self.troops]
 
-    def getHit(self, bayonet=False):
+    def getHit(self, hits, bayonet=False):
         # kill own Infantry when shot
-        self.troops.remove(random.choice(self.troops))
-        morale = self.morale * I_PANIC_BAY ** bayonet
-        if random.randint(0, 99) < morale and self.panicTime == 0:
-            [infantry.startPanic() for infantry in self.troops]
-            self.panicTime = time.get_ticks()
+        target = random.choice(self.troops)
+        target.getHit(hits, bayonet)
 
-    def getShelled(self, ball):
+    # def getShelled(self, ball):
         # kill own Infantry from Cannon roundshot
-        for unit in self.troops:
-            if unit.rect.colliderect(ball.rect):
-                self.troops.remove(unit)
-        if random.randint(0, 99) < self.morale and self.panicTime == 0:
-            [infantry.startPanic() for infantry in self.troops]
-            self.panicTime = time.get_ticks()
+        # for unit in self.troops:
+        #     if unit.rect.colliderect(ball.rect):
+        #         self.troops.remove(unit)
+        # if random.randint(0, 99) < self.morale:
+        #     [infantry.startPanic() for infantry in self.troops]
 
     def orders(self):
         # give orders other than move for Company
@@ -440,12 +433,12 @@ class Company():
 
     def blitme(self):
         # print elements of Company
-        self.flag.blitme()
         if self.showOrders > 1:
             self.bayonetButton.blitme()
             self.carreButton.blitme()
             self.lineButton.blitme()
         [infantry.blitme() for infantry in self.troops]
+        self.flag.blitme()
 
     def __str__(self):
         return self.id

@@ -25,10 +25,10 @@ def check_events(color, events, units, screen, flags, cprof):
             if event.unicode == "z":
                 if color == "blue":
                     units.append(Company(screen, 0, *pygame.mouse.get_pos(),
-                                         3, 5, color, flags))
+                                         2, 2, color, flags, 500))
                 if color == "green":
                     units.append(Company(screen, 0, *pygame.mouse.get_pos(),
-                                         3, 5, color, flags,
+                                         2, 2, color, flags, 500,
                                          False))
             if event.unicode == "x":
                 if color == "blue":

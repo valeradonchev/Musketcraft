@@ -98,13 +98,17 @@ rdddq
     return images
 
 
-blueImages = scaleImage('images/blue_infantry.png',
-                        'images/blue_infantry_firing.png',
-                        'images/blue_infantry_bayonet.png',
+blueImages = scaleImage('images/blue_battalion.png',
+                        'images/blue_square.png',
+                        # 'images/blue_infantry.png',
+                        # 'images/blue_infantry_firing.png',
+                        # 'images/blue_infantry_bayonet.png',
                         'images/blue_flag.png',)
-greenImages = scaleImage('images/green_infantry.png',
-                         'images/green_infantry_firing.png',
-                         'images/green_infantry_bayonet.png',
+greenImages = scaleImage('images/green_battalion.png',
+                         'images/green_square.png',
+                         # 'images/green_infantry.png',
+                         # 'images/green_infantry_firing.png',
+                         # 'images/green_infantry_bayonet.png',
                          'images/green_flag.png',)
 blueCannon = scaleImage('images/blue_cannon.png',
                         'images/blue_cannon_firing.png',
