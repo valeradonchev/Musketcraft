@@ -314,44 +314,33 @@ class Company():
         distance = coords - self.coords
         self.angle = (math.atan2(-1 * distance[1], distance[0]))
 
-    def findTarget(self):
-        # select target
-        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
-        for target, d in zip(self.enemies, enemyDist):
-            if self.target is None:
-                seen = d <= I_SIGHT
-                if seen and target.size > 0 and self.allowShoot:
-                    self.target = target
-                    if self.moving:
-                        self.oldAngle = self.angle
-                        self.stop()
-
     def aim(self):
         # turn toward selected target
-        self.findTarget()
-        if self.target is None:
-            return
-        self.lookAt(self.target.coords)
-        toTarget = self.distance(self.target.coords)
-        dead = self.target.size == 0
-        if toTarget > I_SIGHT or dead or not self.allowShoot:
-            self.target = None
-            self.stop()
-            [infantry.aim(*self.aimVars) for infantry in self.troops]
-        elif abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
-            # if self.formed < self.size:
-                # [infantry.form(*self.formVars) for infantry in self.troops]
-            # else:
-            self.oldAngle = self.angle
-            self.stop()
-        elif toTarget > self.range:
-            self.flag.attackMove = True
-            self.setSpeed(self.target.coords)
-            for infantry in self.troops:
-                infantry.angle = self.angle
-        else:
-            self.stop()
-            [infantry.aim(*self.aimVars) for infantry in self.troops]
+        [troop.aim() for troop in self.troops]
+        # self.findTarget()
+        # if self.target is None:
+        #     return
+        # self.lookAt(self.target.coords)
+        # toTarget = self.distance(self.target.coords)
+        # dead = self.target.size == 0
+        # if toTarget > I_SIGHT or dead or not self.allowShoot:
+        #     self.target = None
+        #     self.stop()
+        #     [infantry.aim(*self.aimVars) for infantry in self.troops]
+        # elif abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
+        #     # if self.formed < self.size:
+        #         # [infantry.form(*self.formVars) for infantry in self.troops]
+        #     # else:
+        #     self.oldAngle = self.angle
+        #     self.stop()
+        # elif toTarget > self.range:
+        #     self.flag.attackMove = True
+        #     self.setSpeed(self.target.coords)
+        #     for infantry in self.troops:
+        #         infantry.angle = self.angle
+        # else:
+        #     self.stop()
+        #     [infantry.aim(*self.aimVars) for infantry in self.troops]
 
     def getHit(self, hits, bayonet=False):
         # kill own Infantry when shot

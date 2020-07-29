@@ -70,6 +70,8 @@ class Infantry(Sprite):
         velocity of Infantry in x, y directions
     moving : bool
         whether Infantry is moving
+    attackMove : bool
+        whether Infantry will stop to attack enemies
     targetxy : float 1-D numpy.ndarray [2], >= 0
         coords where Infantry is moving to, target[0] = -1 when no target
     target : pygame.Group or None
@@ -105,6 +107,8 @@ class Infantry(Sprite):
         coords of Infantry relative to Company center
     image : pygame.Surface
         image rotated to face current Infantry direction
+    allowShoot : bool
+        whether Infantry will currently aim at targets
     morale : int
         percent chance of Infantry entering panic on losing next unit
 
@@ -165,6 +169,7 @@ class Infantry(Sprite):
         self.coords = np.array(self.rect.center, dtype=float)
         self.velocity = np.array([0, 0], dtype=float)
         self.moving = False
+        self.attackMove = False
         self.targetxy = np.array([-1, -1], dtype=float)
         self.target = None
         self.aimedOn = 0
@@ -197,6 +202,11 @@ class Infantry(Sprite):
         # image rotated to face current Infantry direction
         degrees = self.angle * 180 / math.pi
         return pygame.transform.rotate(self.costume, degrees)
+
+    @property
+    def allowShoot(self):
+        # whether Company will currently aim at targets
+        return not self.moving or self.attackMove
 
     @property
     def morale(self):
@@ -248,10 +258,11 @@ class Infantry(Sprite):
 
     def follow(self, fCoords, fSelect, attackMove, angle):
         # move Infantry to flag
+        self.attackMove = attackMove
         altFCoords = fCoords + self.relatCoords
         flagPlaced = (fSelect == 0 and self.distance(altFCoords) > I_SPEED)
         # print(self.angle)
-        if flagPlaced and (self.target is None or not attackMove):
+        if flagPlaced and (self.target is None):
             if not self.moving:
                 self.moving = True
                 self.angle = angle
@@ -299,22 +310,45 @@ class Infantry(Sprite):
         self.moving = False
         self.targetxy = np.array([-1, -1])
 
-    def aim(self, target, angle=0, allowShoot=False, dist=I_RANGE):
-        # set target, point at target
-        if target is None:
+    def findTarget(self):
+        # select target
+        if not self.allowShoot:
             self.target = None
-            self.angle = angle
             return
+        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+        for target, d in zip(self.enemies, enemyDist):
+            if self.target is None:
+                seen = d <= I_SIGHT
+                if seen and target.size > 0 and self.allowShoot:
+                    self.target = target
+                    if self.moving:
+                        self.oldAngle = self.angle
+                        self.stop()
+                    return
+
+    def aim(self):
+        # turn toward selected target
+        self.findTarget()
         if self.target is None:
-            self.target = target
-        if self.target is not None:
-            self.lookAt(self.target.coords)
-            if (dist > I_RANGE or not allowShoot or
-                (self.formation == "Carre" and dist > I_SPEED)):
-                self.target = None
-                self.angle = angle
-            else:
-                self.lookAt(self.target.coords)
+            return
+        print(self.allowShoot)
+        self.lookAt(self.target.coords)
+        toTarget = self.distance(self.target.coords)
+        dead = self.target.size == 0
+        if toTarget > I_SIGHT or dead or not self.allowShoot:
+            self.target = None
+            self.stop()
+        elif abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
+            # if self.formed < self.size:
+            # [infantry.form(*self.formVars) for infantry in self.troops]
+            # else:
+            self.oldAngle = self.angle
+            self.stop()
+        elif toTarget > I_RANGE:
+            self.setTarget(self.target.coords)
+            self.move()
+        else:
+            self.stop()
 
     def update(self, allowShoot=False, bayonet=False, dist=I_RANGE):
         # move Infantry based on speed, fire at target if possible
@@ -367,7 +401,7 @@ class Infantry(Sprite):
         morale = self.morale * I_PANIC_BAY ** bayonet
         if random.randint(0, 99) < morale and self.panicTime == 0:
             self.startPanic()
-        print(self.size)
+        # print(self.size)
 
     def blitme(self):
         # draw Infantry on screen
