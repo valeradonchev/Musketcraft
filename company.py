@@ -158,7 +158,7 @@ class Company():
             self.troops.append(Infantry(screen, angle, i, self.maxSize, shiftx,
                                         shifty, strength, team, fil1, fil2,
                                         self.coords))
-        self.flag = Flag(screen, (x, y), fileFlag, play)
+        self.flag = Flag(screen, (x, y), angle, fileFlag, play)
         flags.append(self.flag)
         self.target = None
         # 0,1=click,release to show buttons, 2,3=click,release to select
@@ -228,6 +228,11 @@ class Company():
         # variables that are passed to Infantry for form function
         return self.angle, self.oldAngle, self.coords
 
+    @property
+    def flagVars(self):
+        return (self.flag.coords, self.flag.select, self.flag.attackMove,
+                self.flag.angle)
+
     # @property
     # def morale(self):
     #     # update chance to flee
@@ -247,7 +252,7 @@ class Company():
         self.speed = min(I_SPEED, self.distance(coords))
         if self.formation == "Carre":
             self.speed = 0
-        [infantry.setSpeed(self.speed) for infantry in self.troops]
+        # [infantry.setSpeed(self.speed) for infantry in self.troops]
 
     def distance(self, coords):
         # measure straight line distance Company to coords
@@ -262,7 +267,7 @@ class Company():
     def stop(self):
         # stop Company, Infantry
         self.speed = 0
-        [infantry.stop() for infantry in self.troops]
+        # [infantry.stop() for infantry in self.troops]
         self.moving = False
 
     def update(self):
@@ -281,29 +286,26 @@ class Company():
     def follow(self, flags):
         # move Company and Infantry to flag
         if self.play:
-            self.flag.checkDrag(flags, self.coords)
+            self.flag.checkDrag(flags)
         flagCoords = self.flag.coords
         flagPlaced = (self.flag.select == 0 and
                       self.distance(flagCoords) > I_SPEED)
         if flagPlaced and (self.target is None or not self.flag.attackMove):
-            if self.formed < self.size:
-                self.moving = True
-                self.lookAt(flagCoords)
-                [infantry.form(*self.formVars) for infantry in self.troops]
+            self.moving = True
+            self.setSpeed(flagCoords)
+            self.lookAt(flagCoords)
+            # self.oldAngle = self.angle
+            if abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
+                self.stop()
             else:
-                self.oldAngle = self.angle
-                self.setSpeed(flagCoords)
-                self.lookAt(flagCoords)
-                if abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
-                    self.stop()
-                else:
-                    self.angle = self.oldAngle
+                self.angle = self.oldAngle
         elif self.moving:
             self.oldAngle = self.angle
             self.stop()
         if self.flag.select > 0 and self.moving:
             self.lookAt(flagCoords)
             self.stop()
+        [unit.follow(*self.flagVars) for unit in self.troops]
 
     def lookAt(self, coords):
         # set rotation to angle from current center to new point
@@ -337,11 +339,11 @@ class Company():
             self.stop()
             [infantry.aim(*self.aimVars) for infantry in self.troops]
         elif abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
-            if self.formed < self.size:
-                [infantry.form(*self.formVars) for infantry in self.troops]
-            else:
-                self.oldAngle = self.angle
-                self.stop()
+            # if self.formed < self.size:
+                # [infantry.form(*self.formVars) for infantry in self.troops]
+            # else:
+            self.oldAngle = self.angle
+            self.stop()
         elif toTarget > self.range:
             self.flag.attackMove = True
             self.setSpeed(self.target.coords)
@@ -399,7 +401,7 @@ class Company():
     def formCarre(self):
         # Company forms a carre
         self.formation = "Carre"
-        [inf.formCarre(self.sizex, self.sizey) for inf in self.troops]
+        [inf.formCarre() for inf in self.troops]
 
     def formLine(self):
         # Company forms a line

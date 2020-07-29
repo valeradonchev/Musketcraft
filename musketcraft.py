@@ -26,16 +26,16 @@ def runGame():
     screen = SCREEN
     pygame.display.set_caption("Musketcraft")
     flags = []
-    infantry = pd.read_csv('levels/BorodinoInfantry.csv')
+    # infantry = pd.read_csv('levels/BorodinoInfantry.csv')
     # cannon = pd.read_csv('levels/BorodinoCannon.csv')
     units = []
     # for row in cannon.itertuples(False):
     #     units.append(Battery(screen, row.angle, row.x, row.y, row.size,
     #                          row.team, flags, row.play, row.defend))
-    for row in infantry.itertuples(False):
-        units.append(Company(screen, row.angle, row.x, row.y, row.sizex,
-                             row.sizey, row.team, flags, row.strength,
-                             row.play, row.defend))
+    # for row in infantry.itertuples(False):
+    #     units.append(Company(screen, row.angle, row.x, row.y, row.sizex,
+    #                          row.sizey, row.team, flags, row.strength,
+    #                          row.play, row.defend))
     # spawn = [Company(screen, 0, 100, 100, 3, 5, "green", flags, False, False)]
     # events = [SpawnEvent(600, 400, "blue", 1, 100, spawn)]
     events = []

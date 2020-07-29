@@ -18,6 +18,10 @@ class Flag:
         rectangle of Flag Surface
     coords : float 1-D numpy.ndarray [2], >=0
         coords of center of Flag
+    oldCoords : float 1-D numpy.ndarray [2], >=0
+        coords Flag will return to if move is cancelled
+    angle : float
+        angle in radians from oldCoords to coords
     draggable : bool
         whether Flag can be dragged by user
     moveButton : Button
@@ -38,13 +42,15 @@ class Flag:
 
     """
 
-    def __init__(self, screen, coords, file, draggable):
+    def __init__(self, screen, coords, angle, file, draggable):
         self.screen = screen
         size = [int(i / math.sqrt(SCALE)) for i in file.get_rect().size]
         self.image = pygame.transform.scale(file, size)
         self.rect = self.image.get_rect()
         self.rect.center = coords
         self.coords = np.array(self.rect.center, dtype=float)
+        self.oldCoords = coords
+        self.angle = angle
         self.draggable = draggable
         self.moveButton = Button(screen, "Move")
         self.attackButton = Button(screen, "Attack")
@@ -52,7 +58,7 @@ class Flag:
         self.select = 0
         self.attackMove = False
 
-    def checkDrag(self, flags, coords):
+    def checkDrag(self, flags):
         # drag Flag to mouse location, respond to button presses
         idle = all(flag.select == 0 for flag in flags)
         mouse = pygame.mouse.get_pos()
@@ -62,7 +68,7 @@ class Flag:
             return
         if cancel and self.select != 0:
             self.select = 0
-            self.coords = coords
+            self.coords = self.oldCoords
         if self.rect.collidepoint(mouse) and click:
             self.select = 1
         if self.select == 1 and not click:
@@ -84,13 +90,22 @@ class Flag:
                 self.select = 0
                 self.moveButton.draw((0, 0))
                 self.attackButton.draw((0, 0))
+                self.lookAt()
+                self.oldCoords = self.coords
             if self.attackButton.rect.collidepoint(mouse):
                 self.attackMove = True
                 self.select = 0
                 self.moveButton.draw((0, 0))
                 self.attackButton.draw((0, 0))
+                self.lookAt()
+                self.oldCoords = self.coords
         if self.select == 1:
-            self.coords = mouse
+            self.coords = np.asarray(mouse)
+
+    def lookAt(self):
+        # point at coordinates
+        distance = self.coords - self.oldCoords
+        self.angle = math.atan2(-distance[1], distance[0])
 
     def blitme(self):
         # draw flag, buttons

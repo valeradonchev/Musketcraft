@@ -1,20 +1,19 @@
 from settings import I_SPEED, I_RANGE, I_AIM, I_LOAD, I_CHANCE
 from settings import I_END_FIRE, I_DELAY, I_BAY_CHANCE, I_SIGHT, I_MORALE
-from settings import I_MORALE_MIN, I_PANIC_BAY, I_PANIC_TIME
+from settings import I_MORALE_MIN, I_PANIC_BAY, I_PANIC_TIME, I_FIRE_ANGLE
 import pygame
 import math
 from pygame.sprite import Sprite
 from pygame import time
 import random
 import numpy as np
-"targeting, at Infantry level"
+"targeting at Infantry level"
 
 "increase scale - boxes represent battalions?"
 "Cannons deal damage differently"
 "smaller ranges"
-"infantry can break formation to attack targets, flee one a ta time"
+"infantry can break formation to attack targets"
 "line vs. column formation"
-"figure out how damage is dealt"
 
 "computer control"
 "retarget to closest"
@@ -22,7 +21,7 @@ import numpy as np
 "make ratios of units better"
 
 "cavalry should be injured without charge"
-"carre should take time to form, ai not form if has target?"
+"carre should take time to form"
 
 "rework formation/idNum"
 "sort out values in Settings"
@@ -57,6 +56,8 @@ class Infantry(Sprite):
         current image used by Infantry
     angle : float
         angle in radians of Infantry to x-axis
+    oldAngle : float
+        angle in radians of Infantry to x-axis saved from last move
     rect : pygame.rect.Rect
         rectangle of Infantry Surface
     shiftr : float, > 0
@@ -67,8 +68,8 @@ class Infantry(Sprite):
         coords of Infantry as float to avoid rounding errors
     velocity : float 1-D numpy.ndarray [2]
         velocity of Infantry in x, y directions
-    formed : bool
-        whether Infantry is in formation
+    moving : bool
+        whether Infantry is moving
     targetxy : float 1-D numpy.ndarray [2], >= 0
         coords where Infantry is moving to, target[0] = -1 when no target
     target : pygame.Group or None
@@ -156,13 +157,14 @@ class Infantry(Sprite):
         self.carre = file2
         self.costume = self.line
         self.angle = angle
+        self.oldAngle = angle
         self.rect = self.image.get_rect()
         self.shiftr = math.hypot(shiftx, shifty)
         self.shiftt = math.atan2(shifty, shiftx)
         self.rect.center = coords + self.relatCoords
         self.coords = np.array(self.rect.center, dtype=float)
         self.velocity = np.array([0, 0], dtype=float)
-        self.formed = False
+        self.moving = False
         self.targetxy = np.array([-1, -1], dtype=float)
         self.target = None
         self.aimedOn = 0
@@ -216,7 +218,7 @@ class Infantry(Sprite):
             return []
         return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
 
-    def formCarre(self, sizex, sizey):
+    def formCarre(self):
         # move Infantry into carre formation
         self.formation = "Carre"
         self.costume = self.carre
@@ -226,23 +228,45 @@ class Infantry(Sprite):
         self.formation = "Line"
         self.costume = self.line
 
-    def form(self, angle, oldAngle, coords):
-        # move Infantry into formation for moving to flag/firing
-        if self.formed:
-            return
-        if self.targetxy[0] == -1:
-            angleDiff = abs(oldAngle - angle)
-            if 0.5 * math.pi < angleDiff < 1.5 * math.pi:
-                self.shiftr *= -1
-                self.idNum = self.comSize - self.idNum - 1
-            self.angle = angle
-            self.setTarget(coords)
-        if self.distance(self.targetxy) > 0:
+    # def form(self, angle, oldAngle, coords):
+    #     # move Infantry into formation for moving to flag/firing
+    #     if self.formed:
+    #         return
+    #     if self.targetxy[0] == -1:
+    #         angleDiff = abs(oldAngle - angle)
+    #         if 0.5 * math.pi < angleDiff < 1.5 * math.pi:
+    #             self.shiftr *= -1
+    #             self.idNum = self.comSize - self.idNum - 1
+    #         self.angle = angle
+    #         self.setTarget(coords)
+    #     if self.distance(self.targetxy) > 0:
+    #         self.move()
+    #     else:
+    #         self.stop()
+    #         self.formed = True
+    #         self.angle = angle
+
+    def follow(self, fCoords, fSelect, attackMove, angle):
+        # move Infantry to flag
+        altFCoords = fCoords + self.relatCoords
+        flagPlaced = (fSelect == 0 and self.distance(altFCoords) > I_SPEED)
+        # print(self.angle)
+        if flagPlaced and (self.target is None or not attackMove):
+            if not self.moving:
+                self.moving = True
+                self.angle = angle
+                angleDiff = abs(self.oldAngle - self.angle)
+                if 0.5 * math.pi < angleDiff < 1.5 * math.pi:
+                    self.shiftr *= -1
+                    self.idNum = self.comSize - self.idNum - 1
+                self.setTarget(fCoords)
             self.move()
-        else:
+        elif self.moving:
+            self.oldAngle = self.angle
             self.stop()
-            self.formed = True
-            self.angle = angle
+        if fSelect > 0 and self.moving:
+            self.lookAt(fCoords)
+            self.stop()
 
     def setTarget(self, coords):
         # set targetxy based on targetxy coords, shift from center of Company
@@ -272,7 +296,7 @@ class Infantry(Sprite):
     def stop(self):
         # stop movement
         self.setSpeed(0)
-        self.formed = False
+        self.moving = False
         self.targetxy = np.array([-1, -1])
 
     def aim(self, target, angle=0, allowShoot=False, dist=I_RANGE):
