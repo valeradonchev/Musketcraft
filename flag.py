@@ -31,7 +31,9 @@ class Flag:
     select : bool
         whether the buttons are diplayed
     attackMove : bool
-        whether Company should stop to shoot at enemies
+        whether Infantry should stop to shoot at enemies
+    change : bool
+        whether Infantry should update attackMove
 
     Methods
     -------
@@ -56,7 +58,8 @@ class Flag:
         self.attackButton = Button(screen, "Attack")
         # 0,1=click,release to drag flag, 2,3=click,release to click button
         self.select = 0
-        self.attackMove = False
+        self.attackMove = True
+        self.change = False
 
     def checkDrag(self, flags):
         # drag Flag to mouse location, respond to button presses
@@ -92,6 +95,7 @@ class Flag:
                 self.attackButton.draw((0, 0))
                 self.lookAt()
                 self.oldCoords = self.coords
+                self.change = True
             if self.attackButton.rect.collidepoint(mouse):
                 self.attackMove = True
                 self.select = 0
@@ -99,6 +103,7 @@ class Flag:
                 self.attackButton.draw((0, 0))
                 self.lookAt()
                 self.oldCoords = self.coords
+                self.change = True
         if self.select == 1:
             self.coords = np.asarray(mouse)
 

@@ -7,8 +7,8 @@ from pygame.sprite import Sprite
 from pygame import time
 import random
 import numpy as np
-"targeting at Infantry level"
-
+"cannons, cavalry"
+"show health?"
 "increase scale - boxes represent battalions?"
 "Cannons deal damage differently"
 "smaller ranges"
@@ -72,6 +72,8 @@ class Infantry(Sprite):
         whether Infantry is moving
     attackMove : bool
         whether Infantry will stop to attack enemies
+    bayonets : bool
+        whether Infantry will charge enemies with bayonets
     targetxy : float 1-D numpy.ndarray [2], >= 0
         coords where Infantry is moving to, target[0] = -1 when no target
     target : pygame.Group or None
@@ -100,6 +102,10 @@ class Infantry(Sprite):
         list of all units with same team value, including self
     enemies : list of Cannon, Infantry, Cavalry
         list of all units with different team value
+    play : bool
+        whether Infantry can be given orders by player
+    defense : bool
+        whether unit will ignore AI move orders
 
     Properties
     ----------
@@ -154,11 +160,12 @@ class Infantry(Sprite):
     """
 
     def __init__(self, screen, angle, i, comSize, shiftx, shifty, size,
-                 team, file1, file2, coords):
+                 team, file1, file2, file3, coords, play, defense):
         super().__init__()
         self.screen = screen
         self.line = file1
-        self.carre = file2
+        self.firing = file2
+        self.carre = file3
         self.costume = self.line
         self.angle = angle
         self.oldAngle = angle
@@ -169,7 +176,8 @@ class Infantry(Sprite):
         self.coords = np.array(self.rect.center, dtype=float)
         self.velocity = np.array([0, 0], dtype=float)
         self.moving = False
-        self.attackMove = False
+        self.attackMove = True
+        self.bayonets = False
         self.targetxy = np.array([-1, -1], dtype=float)
         self.target = None
         self.aimedOn = 0
@@ -182,6 +190,8 @@ class Infantry(Sprite):
         self.maxSize = size
         self.size = size
         self.team = team
+        self.play = play
+        self.defense = defense
 
     def unitInit(self, units):
         # set allies and enemies
@@ -222,6 +232,18 @@ class Infantry(Sprite):
             return I_MORALE + deathMorale * enemySize / allySize
         return 0
 
+    @property
+    def range(self):
+        # distance in pixels which Companies will set enemies as target
+        if self.bayonets:
+            return I_SPEED
+        return I_RANGE
+
+    @property
+    def idle(self):
+        # whether AI can move this Company
+        return not self.defense and self.target is None and not self.moving
+
     def distanceMany(self, coords):
         # measure straight line distance Battery to list of coords
         if len(coords) == 0:
@@ -238,31 +260,16 @@ class Infantry(Sprite):
         self.formation = "Line"
         self.costume = self.line
 
-    # def form(self, angle, oldAngle, coords):
-    #     # move Infantry into formation for moving to flag/firing
-    #     if self.formed:
-    #         return
-    #     if self.targetxy[0] == -1:
-    #         angleDiff = abs(oldAngle - angle)
-    #         if 0.5 * math.pi < angleDiff < 1.5 * math.pi:
-    #             self.shiftr *= -1
-    #             self.idNum = self.comSize - self.idNum - 1
-    #         self.angle = angle
-    #         self.setTarget(coords)
-    #     if self.distance(self.targetxy) > 0:
-    #         self.move()
-    #     else:
-    #         self.stop()
-    #         self.formed = True
-    #         self.angle = angle
-
-    def follow(self, fCoords, fSelect, attackMove, angle):
+    def follow(self, fCoords, fSelect, attackMove, angle, change):
         # move Infantry to flag
-        self.attackMove = attackMove
         altFCoords = fCoords + self.relatCoords
-        flagPlaced = (fSelect == 0 and self.distance(altFCoords) > I_SPEED)
-        # print(self.angle)
-        if flagPlaced and (self.target is None):
+        if not self.moving:
+            flagPlaced = (fSelect == 0 and self.distance(altFCoords) > I_SPEED)
+        else:
+            flagPlaced = (fSelect == 0 and self.distance(self.targetxy) > I_SPEED)
+        if change:
+            self.attackMove = attackMove
+        if flagPlaced and (self.target is None or not self.attackMove):
             if not self.moving:
                 self.moving = True
                 self.angle = angle
@@ -270,7 +277,7 @@ class Infantry(Sprite):
                 if 0.5 * math.pi < angleDiff < 1.5 * math.pi:
                     self.shiftr *= -1
                     self.idNum = self.comSize - self.idNum - 1
-                self.setTarget(fCoords)
+                self.targetxy = fCoords + self.relatCoords
             self.move()
         elif self.moving:
             self.oldAngle = self.angle
@@ -297,7 +304,8 @@ class Infantry(Sprite):
     def lookAt(self, target):
         # point at coordinates
         distance = target - self.coords
-        self.angle = math.atan2(-distance[1], distance[0])
+        if distance[0] != 0 or distance[1] != 0:
+            self.angle = math.atan2(-distance[1], distance[0])
 
     def setSpeed(self, speed):
         # set vertical, horizontal speed
@@ -308,6 +316,7 @@ class Infantry(Sprite):
         # stop movement
         self.setSpeed(0)
         self.moving = False
+        self.attackMove = True
         self.targetxy = np.array([-1, -1])
 
     def findTarget(self):
@@ -331,33 +340,31 @@ class Infantry(Sprite):
         self.findTarget()
         if self.target is None:
             return
-        print(self.allowShoot)
         self.lookAt(self.target.coords)
         toTarget = self.distance(self.target.coords)
-        dead = self.target.size == 0
+        dead = self.target.size == 0 or self.target not in self.enemies
+        dead = dead or self.target.panicTime != 0
         if toTarget > I_SIGHT or dead or not self.allowShoot:
             self.target = None
             self.stop()
         elif abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
-            # if self.formed < self.size:
-            # [infantry.form(*self.formVars) for infantry in self.troops]
-            # else:
             self.oldAngle = self.angle
             self.stop()
-        elif toTarget > I_RANGE:
-            self.setTarget(self.target.coords)
+        elif toTarget > self.range:
+            self.attackMove = True
+            self.targetxy = self.target.coords
             self.move()
         else:
             self.stop()
 
-    def update(self, allowShoot=False, bayonet=False, dist=I_RANGE):
+    def update(self):
         # move Infantry based on speed, fire at target if possible
         self.coords += self.velocity
-        self.fire(allowShoot, bayonet, dist)
+        self.fire()
 
     def panic(self):
         # move Infantry in randomly determined direction while panicking
-        self.aim(None)
+        self.target = None
         self.angle = self.panicAngle
         self.setSpeed(I_SPEED)
         self.update()
@@ -366,20 +373,20 @@ class Infantry(Sprite):
 
     def startPanic(self):
         # set direction Infantry moves away in when panicking
-        self.aim(None)
+        self.target = None
         self.panicAngle = self.angle + math.pi * random.uniform(.75, 1.25)
         self.panicTime = time.get_ticks()
 
-    def fire(self, allowShoot=False, bayonet=False, dist=I_RANGE):
+    def fire(self):
         # fire when target isn't None, reload after firing
-        if self.target is None or not allowShoot:
+        if self.target is None or not self.allowShoot:
             self.aimedOn = 0
         if self.aimedOn == 0 and self.target is not None and self.firedOn == 0:
             self.aimedOn = time.get_ticks() + random.randint(-I_DELAY, I_DELAY)
         if self.aimedOn != 0 and time.get_ticks() - self.aimedOn > I_AIM:
-            # self.costume = self.firing
-            # if bayonet:
-            #     self.costume = self.bayonet
+            dist = self.distance(self.target.coords)
+            if self.costume != self.carre:
+                self.costume = self.firing
             self.firedOn = time.get_ticks()
             self.aimedOn = 0
             chance = I_CHANCE * I_RANGE / dist
@@ -389,9 +396,10 @@ class Infantry(Sprite):
                 chance = I_BAY_CHANCE
             hits = np.random.binomial(self.size, min(chance / 100, 1))
             # if random.randint(0, 99) < chance:
-            self.target.getHit(hits, bayonet)
-        # if self.firedOn != 0 and time.get_ticks() - self.firedOn > I_END_FIRE:
-            # self.costume = self.ready
+            self.target.getHit(hits, self.bayonets)
+        if self.firedOn != 0 and time.get_ticks() - self.firedOn > I_END_FIRE:
+            if self.costume != self.carre:
+                self.costume = self.line
         if self.firedOn != 0 and time.get_ticks() - self.firedOn > I_LOAD:
             self.firedOn = 0
 
@@ -403,9 +411,20 @@ class Infantry(Sprite):
             self.startPanic()
         # print(self.size)
 
+    def AIcarre(self):
+        # form carre when idle and charged by cavalry
+        if self.play or self.target is not None:
+            return
+        for enmy in self.enemies:
+            if hasattr(enmy, "chargeStart") and enmy.target == self:
+                self.formCarre()
+                return
+        self.formLine()
+
     def blitme(self):
         # draw Infantry on screen
         self.rect = self.image.get_rect()
         self.rect.center = self.coords
         self.screen.blit(self.image, self.rect)
+        # pygame.draw.circle(self.screen, pygame.Color("red"), self.targetxy.astype(int), 1)
         # return self.rect

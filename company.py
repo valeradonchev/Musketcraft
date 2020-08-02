@@ -49,8 +49,6 @@ class Company():
         button pressed to command Company to form carre
     lineButton : Button
         button pressed to command Company to form line
-    bayonets : bool
-        whether Infantry will charge enemies with bayonets
     play : bool
         whether Company can be given orders by player
     team : str
@@ -74,14 +72,6 @@ class Company():
         whether AI can move this Company
     velocity : float 1-D numpy.ndarray [2]
         velocity of Company in vertical and horizontal axes
-    allowShoot : bool
-        whether Company will currently aim at targets
-    range : int, >= 0
-        distance in pixels which Companies will set enemies as target
-    aimVars : list of vars
-        variables passed to Infantry for aim funciton
-    formVars :
-        variables passed to Infantry for form function
     morale : int
         percent chance of Company entering panic on losing next Infantry
 
@@ -91,8 +81,6 @@ class Company():
         set allies and enemies
     setSpeed
         set speed to min of default, distance to coords
-    distance
-        measure straight line distance Company to coords
     distanceMany
         measure straight line distance Company to list of coords
     stop
@@ -133,18 +121,13 @@ class Company():
                  strength, play=True, defense=False):
         super().__init__()
         if team == "green":
-            fil1, fil2, fileFlag = greenImages
+            fil1, fil2, fil3, fileFlag = greenImages
         elif team == "blue":
-            fil1, fil2, fileFlag = blueImages
+            fil1, fil2, fil3, fileFlag = blueImages
         self.coords = np.array([x, y], dtype=float)
-        self.speed = 0
         self.moving = False
-        self.angle = angle
-        self.oldAngle = self.angle
         self.troops = []
         self.maxSize = sizex * sizey
-        self.sizex = sizex
-        self.sizey = sizey
         # add infantry to company
         for i in range(sizex * sizey):
             """ x, y displacement from center of Company based on count
@@ -157,7 +140,7 @@ class Company():
             shiftx = I_GAPX * ((i // sizey) - sizex // 2)
             self.troops.append(Infantry(screen, angle, i, self.maxSize, shiftx,
                                         shifty, strength, team, fil1, fil2,
-                                        self.coords))
+                                        fil3, self.coords, play, defense))
         self.flag = Flag(screen, (x, y), angle, fileFlag, play)
         flags.append(self.flag)
         self.target = None
@@ -166,7 +149,6 @@ class Company():
         self.bayonetButton = Button(screen, "Bayonets")
         self.carreButton = Button(screen, "Carre")
         self.lineButton = Button(screen, "Line")
-        self.bayonets = False
         self.play = play
         self.team = team
         self.formation = "Line"
@@ -186,77 +168,18 @@ class Company():
         return len(self.troops)
 
     @property
-    def formed(self):
-        # count of Infantry in formation
-        return sum([infantry.formed for infantry in self.troops])
-
-    @property
     def idle(self):
         # whether AI can move this Company
         return not self.defense and self.target is None and not self.moving
 
     @property
-    def velocity(self):
-        # vertical, horizontal velocity of Company
-        velocityX = self.speed * math.cos(self.angle)
-        velocityY = -self.speed * math.sin(self.angle)
-        return np.array([velocityX, velocityY], dtype=float)
-
-    @property
-    def allowShoot(self):
-        # whether Company will currently aim at targets
-        return not self.moving or self.flag.attackMove
-
-    @property
-    def range(self):
-        # distance in pixels which Companies will set enemies as target
-        if self.bayonets:
-            return I_SPEED
-        return (I_RANGE - (self.sizey // 2 + 1) * I_GAPY)
-
-    @property
-    def aimVars(self):
-        # variables that are passed to Infantry for aim funciton
-        if self.target is None:
-            return self.target, self.angle, self.allowShoot
-        else:
-            return (self.target, self.angle, self.allowShoot,
-                    self.distance(self.target.coords))
-
-    @property
-    def formVars(self):
-        # variables that are passed to Infantry for form function
-        return self.angle, self.oldAngle, self.coords
-
-    @property
     def flagVars(self):
         return (self.flag.coords, self.flag.select, self.flag.attackMove,
-                self.flag.angle)
+                self.flag.angle, self.flag.change)
 
-    # @property
-    # def morale(self):
-    #     # update chance to flee
-    #     allyDist = self.distanceMany([grp.coords for grp in self.allies])
-    #     allySize = sum([grp.size for grp, d in zip(self.allies, allyDist)
-    #                     if d < I_SIGHT])
-    #     enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
-    #     enemySize = sum([grp.size for grp, d in zip(self.enemies, enemyDist)
-    #                      if d < I_SIGHT])
-    #     deathMorale = I_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
-    #     if allySize > 0:
-    #         return I_MORALE + deathMorale * enemySize / allySize
-    #     return 0
-
-    def setSpeed(self, coords):
-        # set speed to min of default, distance to coords
-        self.speed = min(I_SPEED, self.distance(coords))
-        if self.formation == "Carre":
-            self.speed = 0
-        # [infantry.setSpeed(self.speed) for infantry in self.troops]
-
-    def distance(self, coords):
-        # measure straight line distance Company to coords
-        return np.linalg.norm(self.coords - coords)
+    # def distance(self, coords):
+    #     # measure straight line distance Company to coords
+    #     return np.linalg.norm(self.coords - coords)
 
     def distanceMany(self, coords):
         # measure straight line distance Battery to list of coords
@@ -264,83 +187,25 @@ class Company():
             return []
         return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
 
-    def stop(self):
-        # stop Company, Infantry
-        self.speed = 0
-        # [infantry.stop() for infantry in self.troops]
-        self.moving = False
-
     def update(self):
         # move Company, update Infantry, panic if necessary
         [inf.panic() for inf in self.troops if inf.panicTime != 0]
-        self.coords += self.velocity
         for infantry in self.troops:
             if infantry.size <= 0:
                 self.troops.remove(infantry)
-            elif self.target is None and infantry.panicTime == 0:
-                infantry.update(self.allowShoot, self.bayonets)
-            else:
-                infantry.update(self.allowShoot, self.bayonets,
-                                self.distance(self.target.coords))
+            elif infantry.panicTime == 0:
+                infantry.update()
 
     def follow(self, flags):
         # move Company and Infantry to flag
         if self.play:
             self.flag.checkDrag(flags)
-        flagCoords = self.flag.coords
-        flagPlaced = (self.flag.select == 0 and
-                      self.distance(flagCoords) > I_SPEED)
-        if flagPlaced and (self.target is None or not self.flag.attackMove):
-            self.moving = True
-            self.setSpeed(flagCoords)
-            self.lookAt(flagCoords)
-            # self.oldAngle = self.angle
-            if abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
-                self.stop()
-            else:
-                self.angle = self.oldAngle
-        elif self.moving:
-            self.oldAngle = self.angle
-            self.stop()
-        if self.flag.select > 0 and self.moving:
-            self.lookAt(flagCoords)
-            self.stop()
         [unit.follow(*self.flagVars) for unit in self.troops]
-
-    def lookAt(self, coords):
-        # set rotation to angle from current center to new point
-        if self.formation == "Carre":
-            return
-        distance = coords - self.coords
-        self.angle = (math.atan2(-1 * distance[1], distance[0]))
+        self.flag.change = False
 
     def aim(self):
         # turn toward selected target
         [troop.aim() for troop in self.troops]
-        # self.findTarget()
-        # if self.target is None:
-        #     return
-        # self.lookAt(self.target.coords)
-        # toTarget = self.distance(self.target.coords)
-        # dead = self.target.size == 0
-        # if toTarget > I_SIGHT or dead or not self.allowShoot:
-        #     self.target = None
-        #     self.stop()
-        #     [infantry.aim(*self.aimVars) for infantry in self.troops]
-        # elif abs(self.oldAngle - self.angle) > I_FIRE_ANGLE:
-        #     # if self.formed < self.size:
-        #         # [infantry.form(*self.formVars) for infantry in self.troops]
-        #     # else:
-        #     self.oldAngle = self.angle
-        #     self.stop()
-        # elif toTarget > self.range:
-        #     self.flag.attackMove = True
-        #     self.setSpeed(self.target.coords)
-        #     for infantry in self.troops:
-        #         infantry.angle = self.angle
-        # else:
-        #     self.stop()
-        #     [infantry.aim(*self.aimVars) for infantry in self.troops]
 
     def getHit(self, hits, bayonet=False):
         # kill own Infantry when shot
@@ -379,7 +244,8 @@ class Company():
         if self.showOrders == 2 and click:
             self.showOrders = 3
             if self.bayonetButton.rect.collidepoint(mouse):
-                self.bayonets = not self.bayonets
+                for troop in self.troops:
+                    troop.bayonets = not troop.bayonets
             if self.carreButton.rect.collidepoint(mouse):
                 self.formCarre()
             if self.lineButton.rect.collidepoint(mouse):
@@ -403,24 +269,19 @@ class Company():
         self.flag.attackMove = attackMove
 
     def AIsupport(self):
+        "target ally's target?"
         # move to visible allies in combat
         if self.play:
             return
-        allyDist = self.distanceMany([grp.coords for grp in self.allies])
-        for ally, d in zip(self.allies, allyDist):
+        trp = self.troops[0]
+        allyDist = trp.distanceMany([grp.coords for grp in trp.allies])
+        for ally, d in zip(trp.allies, allyDist):
             canSee = d < I_SIGHT
             if self.idle and ally.target is not None and canSee:
                 self.AIcommand(ally.coords, True)
 
     def AIcarre(self):
-        # form carre when idle and charged by cavalry
-        if self.play or self.target is not None:
-            return
-        for enmy in self.enemies:
-            if hasattr(enmy, "chargeStart") and enmy.target == self:
-                self.formCarre()
-                return
-        self.formLine()
+        [troop.AIcarre() for troop in self.troops]
 
     def blitme(self):
         # print elements of Company
