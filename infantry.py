@@ -328,7 +328,8 @@ class Infantry(Sprite):
         for target, d in zip(self.enemies, enemyDist):
             if self.target is None:
                 seen = d <= I_SIGHT
-                if seen and target.size > 0 and self.allowShoot:
+                panic = target.panicTime != 0
+                if seen and target.size > 0 and self.allowShoot and not panic:
                     self.target = target
                     if self.moving:
                         self.oldAngle = self.angle

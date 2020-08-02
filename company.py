@@ -124,8 +124,8 @@ class Company():
             fil1, fil2, fil3, fileFlag = greenImages
         elif team == "blue":
             fil1, fil2, fil3, fileFlag = blueImages
-        self.coords = np.array([x, y], dtype=float)
-        self.moving = False
+        coords = np.array([x, y], dtype=float)
+        # self.moving = False
         self.troops = []
         self.maxSize = sizex * sizey
         # add infantry to company
@@ -140,10 +140,10 @@ class Company():
             shiftx = I_GAPX * ((i // sizey) - sizex // 2)
             self.troops.append(Infantry(screen, angle, i, self.maxSize, shiftx,
                                         shifty, strength, team, fil1, fil2,
-                                        fil3, self.coords, play, defense))
+                                        fil3, coords, play, defense))
         self.flag = Flag(screen, (x, y), angle, fileFlag, play)
         flags.append(self.flag)
-        self.target = None
+        # self.target = None
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
         self.bayonetButton = Button(screen, "Bayonets")
@@ -152,14 +152,14 @@ class Company():
         self.play = play
         self.team = team
         self.formation = "Line"
-        self.defense = defense
+        # self.defense = defense
         # used to id object for testing, not meant to be seen/used
         self.id = fil1
 
     def unitInit(self, units):
         # set allies and enemies
-        self.enemies = [grp for grp in units if grp.team != self.team]
-        self.allies = [grp for grp in units if grp.team == self.team]
+        # self.enemies = [grp for grp in units if grp.team != self.team]
+        # self.allies = [grp for grp in units if grp.team == self.team]
         [inf.unitInit(units) for inf in self.troops]
 
     @property
@@ -167,25 +167,15 @@ class Company():
         # number of Infantry currently contained in Company
         return len(self.troops)
 
-    @property
-    def idle(self):
-        # whether AI can move this Company
-        return not self.defense and self.target is None and not self.moving
+    # @property
+    # def idle(self):
+    #     # whether AI can move this Company
+    #     return not self.defense and self.target is None and not self.moving
 
     @property
     def flagVars(self):
         return (self.flag.coords, self.flag.select, self.flag.attackMove,
                 self.flag.angle, self.flag.change)
-
-    # def distance(self, coords):
-    #     # measure straight line distance Company to coords
-    #     return np.linalg.norm(self.coords - coords)
-
-    def distanceMany(self, coords):
-        # measure straight line distance Battery to list of coords
-        if len(coords) == 0:
-            return []
-        return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
 
     def update(self):
         # move Company, update Infantry, panic if necessary
@@ -222,19 +212,20 @@ class Company():
 
     def orders(self):
         # give orders other than move for Company
-        if not self.play:
+        if not self.play or self.size == 0:
             return
         if self.flag.select != 0 or pygame.mouse.get_pressed()[2]:
             self.showOrders = 0
         mouse = pygame.mouse.get_pos()
         click = pygame.mouse.get_pressed()[0]
         touch = any([inf.rect.collidepoint(mouse) for inf in self.troops])
-        buttonCoords = (self.coords[0], self.coords[1] + FB_SIZE[1])
+        coords = self.troops[0].coords
+        buttonCoords = (coords[0], coords[1] + FB_SIZE[1])
         if click and self.showOrders == 0 and touch:
             self.showOrders = 1
         if self.showOrders == 1 and not click:
             self.showOrders = 2
-            self.bayonetButton.draw(self.coords)
+            self.bayonetButton.draw(self.troops[0].coords)
             if self.formation == "Line":
                 self.carreButton.draw(buttonCoords)
                 self.lineButton.draw((-100, -100))
@@ -271,13 +262,13 @@ class Company():
     def AIsupport(self):
         "target ally's target?"
         # move to visible allies in combat
-        if self.play:
+        if self.play or self.size == 0:
             return
         trp = self.troops[0]
         allyDist = trp.distanceMany([grp.coords for grp in trp.allies])
         for ally, d in zip(trp.allies, allyDist):
             canSee = d < I_SIGHT
-            if self.idle and ally.target is not None and canSee:
+            if self.troops[0].idle and ally.target is not None and canSee:
                 self.AIcommand(ally.coords, True)
 
     def AIcarre(self):
