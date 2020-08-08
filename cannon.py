@@ -177,23 +177,6 @@ class Cannon(Sprite):
             return []
         return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
 
-    # def form(self, angle, oldAngle, coords):
-    #     # move Cannon into formation for moving to flag/firing
-    #     if self.formed:
-    #         return
-    #     if self.targetxy[0] == -1:
-    #         angleDiff = abs(oldAngle - angle)
-    #         if 0.5 * math.pi < angleDiff < 1.5 * math.pi:
-    #             self.shiftr *= -1
-    #         self.angle = angle
-    #         self.setTarget(coords)
-    #     if self.distance(self.targetxy) > 0:
-    #         self.move()
-    #     else:
-    #         self.stop()
-    #         self.formed = True
-    #         self.angle = angle
-
     def follow(self, fCoords, fSelect, attackMove, angle, change):
         # move Infantry to flag
         altFCoords = fCoords + self.relatCoords
@@ -251,24 +234,6 @@ class Cannon(Sprite):
         self.moving = False
         self.attackMove = True
         self.targetxy = np.array([-1, -1])
-
-    # def aim(self, target, angle=0, allowShoot=False):
-    #     # set target, point at target
-    #     if target is None:
-    #         self.target = None
-    #         self.angle = angle
-    #         return
-    #     if self.target is None:
-    #         if self.distance(target.coords) <= C_RANGE and target.size > 0:
-    #             self.target = target
-    #     if self.target is not None:
-    #         self.lookAt(self.target.coords)
-    #         toTarget = self.distance(self.target.coords)
-    #         if toTarget > C_RANGE or not allowShoot:
-    #             self.target = None
-    #             self.angle = angle
-    #         else:
-    #             self.lookAt(self.target.coords)
 
     def findTarget(self):
         # select target

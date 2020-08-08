@@ -187,19 +187,6 @@ class Company():
         # turn toward selected target
         [troop.aim() for troop in self.troops]
 
-    # def getHit(self, hits, bayonet=False):
-    #     # kill own Infantry when shot
-    #     target = random.choice(self.troops)
-    #     target.getHit(hits, bayonet)
-
-    # def getShelled(self, ball):
-        # kill own Infantry from Cannon roundshot
-        # for unit in self.troops:
-        #     if unit.rect.colliderect(ball.rect):
-        #         self.troops.remove(unit)
-        # if random.randint(0, 99) < self.morale:
-        #     [infantry.startPanic() for infantry in self.troops]
-
     def orders(self):
         # give orders other than move for Company
         if not self.play or self.size == 0:

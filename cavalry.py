@@ -170,23 +170,6 @@ class Cavalry(Sprite):
         # whether AI can move this Company
         return not self.defense and self.target is None and not self.moving
 
-    # def form(self, angle, oldAngle, coords):
-    #     # move Infantry into formation for moving to flag/firing
-    #     if self.formed:
-    #         return
-    #     if self.targetxy[0] == -1:
-    #         angleDiff = abs(oldAngle - angle)
-    #         if 0.5 * math.pi < angleDiff < 1.5 * math.pi:
-    #             self.shiftr *= -1
-    #         self.angle = angle
-    #         self.setTarget(coords)
-    #     if self.distance(self.targetxy) > 0:
-    #         self.move()
-    #     else:
-    #         self.stop()
-    #         self.formed = True
-    #         self.angle = angle'
-
     def distanceMany(self, coords):
         # measure straight line distance Battery to list of coords
         if len(coords) == 0:
@@ -254,21 +237,6 @@ class Cavalry(Sprite):
         self.moving = False
         self.attackMove = True
         self.targetxy = np.array([-1, -1])
-
-    # def aim(self, target, angle=0, allowShoot=False):
-    #     # set target, point at target
-    #     if target is None:
-    #         self.target = None
-    #         self.angle = angle
-    #         return
-    #     if self.target is None:
-    #         if target.size > 0:
-    #             self.target = target
-    #     if self.target is not None:
-    #         self.lookAt(self.target.coords)
-    #         if not allowShoot:
-    #             self.target = None
-    #             self.angle = angle
 
     def findTarget(self):
         # select target
