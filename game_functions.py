@@ -1,6 +1,6 @@
 import sys
 import pygame
-from settings import BG_COLOR
+from settings import BG_COLOR, C_MEN_PER
 from company import Company
 from squadron import Squadron
 from battery import Battery
@@ -33,18 +33,17 @@ def check_events(color, events, units, screen, flags, cprof):
             if event.unicode == "x":
                 if color == "blue":
                     units.append(Battery(screen, 0, *pygame.mouse.get_pos(),
-                                         3, color, flags))
+                                         3, color, flags, 12))
                 if color == "green":
                     units.append(Battery(screen, 0, *pygame.mouse.get_pos(),
-                                         3, color, flags, False))
+                                         3, color, flags, 12, False))
             if event.unicode == "c":
                 if color == "blue":
                     units.append(Squadron(screen, 0, *pygame.mouse.get_pos(),
-                                          2, 3, color, flags))
+                                          2, 2, color, flags, 120))
                 if color == "green":
                     units.append(Squadron(screen, 0, *pygame.mouse.get_pos(),
-                                          2, 3, color, flags,
-                                          False))
+                                          2, 2, color, flags, 120, False))
             if event.unicode == "f":
                 units = []
                 flags = []

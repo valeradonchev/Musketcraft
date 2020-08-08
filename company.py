@@ -125,9 +125,8 @@ class Company():
         elif team == "blue":
             fil1, fil2, fil3, fileFlag = blueImages
         coords = np.array([x, y], dtype=float)
-        # self.moving = False
         self.troops = []
-        self.maxSize = sizex * sizey
+        # self.maxSize = sizex * sizey
         # add infantry to company
         for i in range(sizex * sizey):
             """ x, y displacement from center of Company based on count
@@ -138,12 +137,11 @@ class Company():
             """
             shifty = I_GAPY * ((i % sizey) - sizey // 2)
             shiftx = I_GAPX * ((i // sizey) - sizex // 2)
-            self.troops.append(Infantry(screen, angle, i, self.maxSize, shiftx,
+            self.troops.append(Infantry(screen, angle, shiftx,
                                         shifty, strength, team, fil1, fil2,
                                         fil3, coords, play, defense))
         self.flag = Flag(screen, (x, y), angle, fileFlag, play)
         flags.append(self.flag)
-        # self.target = None
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
         self.bayonetButton = Button(screen, "Bayonets")
@@ -152,25 +150,17 @@ class Company():
         self.play = play
         self.team = team
         self.formation = "Line"
-        # self.defense = defense
         # used to id object for testing, not meant to be seen/used
         self.id = fil1
 
     def unitInit(self, units):
         # set allies and enemies
-        # self.enemies = [grp for grp in units if grp.team != self.team]
-        # self.allies = [grp for grp in units if grp.team == self.team]
-        [inf.unitInit(units) for inf in self.troops]
+        [unit.unitInit(units) for unit in self.troops]
 
     @property
     def size(self):
         # number of Infantry currently contained in Company
         return len(self.troops)
-
-    # @property
-    # def idle(self):
-    #     # whether AI can move this Company
-    #     return not self.defense and self.target is None and not self.moving
 
     @property
     def flagVars(self):
@@ -179,12 +169,12 @@ class Company():
 
     def update(self):
         # move Company, update Infantry, panic if necessary
-        [inf.panic() for inf in self.troops if inf.panicTime != 0]
-        for infantry in self.troops:
-            if infantry.size <= 0:
-                self.troops.remove(infantry)
-            elif infantry.panicTime == 0:
-                infantry.update()
+        [unit.panic() for unit in self.troops if unit.panicTime != 0]
+        for unit in self.troops:
+            if unit.size <= 0:
+                self.troops.remove(unit)
+            elif unit.panicTime == 0:
+                unit.update()
 
     def follow(self, flags):
         # move Company and Infantry to flag
@@ -197,10 +187,10 @@ class Company():
         # turn toward selected target
         [troop.aim() for troop in self.troops]
 
-    def getHit(self, hits, bayonet=False):
-        # kill own Infantry when shot
-        target = random.choice(self.troops)
-        target.getHit(hits, bayonet)
+    # def getHit(self, hits, bayonet=False):
+    #     # kill own Infantry when shot
+    #     target = random.choice(self.troops)
+    #     target.getHit(hits, bayonet)
 
     # def getShelled(self, ball):
         # kill own Infantry from Cannon roundshot
@@ -260,15 +250,14 @@ class Company():
         self.flag.attackMove = attackMove
 
     def AIsupport(self):
-        "target ally's target?"
         # move to visible allies in combat
         if self.play or self.size == 0:
             return
-        trp = self.troops[0]
-        allyDist = trp.distanceMany([grp.coords for grp in trp.allies])
-        for ally, d in zip(trp.allies, allyDist):
+        unit = self.troops[0]
+        allyDist = unit.distanceMany([grp.coords for grp in unit.allies])
+        for ally, d in zip(unit.allies, allyDist):
             canSee = d < I_SIGHT
-            if self.troops[0].idle and ally.target is not None and canSee:
+            if unit.idle and ally.target is not None and canSee:
                 self.AIcommand(ally.coords, True)
 
     def AIcarre(self):

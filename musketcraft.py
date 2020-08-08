@@ -31,7 +31,8 @@ def runGame():
     units = []
     # for row in cannon.itertuples(False):
     #     units.append(Battery(screen, row.angle, row.x, row.y, row.size,
-    #                          row.team, flags, row.play, row.defend))
+    #                          row.team, flags, row.strength,
+    #                          row.play, row.defend))
     # for row in infantry.itertuples(False):
     #     units.append(Company(screen, row.angle, row.x, row.y, row.sizex,
     #                          row.sizey, row.team, flags, row.strength,

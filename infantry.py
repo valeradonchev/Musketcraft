@@ -1,20 +1,19 @@
 from settings import I_SPEED, I_RANGE, I_AIM, I_LOAD, I_CHANCE
 from settings import I_END_FIRE, I_DELAY, I_BAY_CHANCE, I_SIGHT, I_MORALE
 from settings import I_MORALE_MIN, I_PANIC_BAY, I_PANIC_TIME, I_FIRE_ANGLE
+from settings import I_MED_SHELLED, I_AMP_SHELLED
 import pygame
 import math
 from pygame.sprite import Sprite
 from pygame import time
 import random
 import numpy as np
-"cannons, cavalry"
+
+"review numbers - smaller ranges, fire rate"
 "show health?"
 "increase scale - boxes represent battalions?"
-"Cannons deal damage differently"
-"smaller ranges"
-"infantry can break formation to attack targets"
 "line vs. column formation"
-
+"AI support target ally's target?"
 "computer control"
 "retarget to closest"
 "troops can't move through each other"
@@ -159,7 +158,7 @@ class Infantry(Sprite):
 
     """
 
-    def __init__(self, screen, angle, i, comSize, shiftx, shifty, size,
+    def __init__(self, screen, angle, shiftx, shifty, size,
                  team, file1, file2, file3, coords, play, defense):
         super().__init__()
         self.screen = screen
@@ -185,8 +184,6 @@ class Infantry(Sprite):
         self.panicAngle = 0
         self.panicTime = 0
         self.formation = "Line"
-        self.idNum = i
-        self.comSize = comSize
         self.maxSize = size
         self.size = size
         self.team = team
@@ -276,7 +273,6 @@ class Infantry(Sprite):
                 angleDiff = abs(self.oldAngle - self.angle)
                 if 0.5 * math.pi < angleDiff < 1.5 * math.pi:
                     self.shiftr *= -1
-                    self.idNum = self.comSize - self.idNum - 1
                 self.targetxy = fCoords + self.relatCoords
             self.move()
         elif self.moving:
@@ -380,7 +376,9 @@ class Infantry(Sprite):
 
     def fire(self):
         # fire when target isn't None, reload after firing
-        if self.target is None or not self.allowShoot:
+        outrange = self.target is None
+        outrange = outrange or self.distance(self.target.coords) > self.range
+        if not self.allowShoot or outrange:
             self.aimedOn = 0
         if self.aimedOn == 0 and self.target is not None and self.firedOn == 0:
             self.aimedOn = time.get_ticks() + random.randint(-I_DELAY, I_DELAY)
@@ -404,13 +402,19 @@ class Infantry(Sprite):
         if self.firedOn != 0 and time.get_ticks() - self.firedOn > I_LOAD:
             self.firedOn = 0
 
-    def getHit(self, hits, bayonet):
+    def getHit(self, hits, bayonet=False):
         # reduce size by number of hits
         self.size -= hits
         morale = self.morale * I_PANIC_BAY ** bayonet
         if random.randint(0, 99) < morale and self.panicTime == 0:
             self.startPanic()
         # print(self.size)
+
+    def getShelled(self, hits, angle):
+        # reduce size based on hits, angle
+        angleDiff = abs(self.angle - angle)
+        mult = (I_MED_SHELLED - math.cos(angleDiff * 2) * I_AMP_SHELLED) // 1
+        self.getHit(hits * mult)
 
     def AIcarre(self):
         # form carre when idle and charged by cavalry
@@ -428,4 +432,3 @@ class Infantry(Sprite):
         self.rect.center = self.coords
         self.screen.blit(self.image, self.rect)
         # pygame.draw.circle(self.screen, pygame.Color("red"), self.targetxy.astype(int), 1)
-        # return self.rect

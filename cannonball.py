@@ -39,7 +39,7 @@ class Cannonball(Sprite):
         draw Cannonball on screen
     """
 
-    def __init__(self, screen, angle, file, coords, enemies):
+    def __init__(self, screen, angle, file, coords, enemies, size):
         super().__init__()
         self.screen = screen
         self.image = file
@@ -51,12 +51,14 @@ class Cannonball(Sprite):
         self.rect.center = self.coords
         self.travelled = 0
         self.enemies = enemies
+        self.size = size
 
     def update(self, cannon):
         # move Cannonball, kill enemies in contact, remove at max distance
         for company in self.enemies:
-            if any([self.rect.colliderect(nt.rect) for nt in company.troops]):
-                company.getShelled(self)
+            if self.rect.colliderect(company.rect):
+                company.getShelled(self.size, self.angle)
+                self.enemies.remove(company)
         self.coords += self.velocity
         self.travelled += CB_SPEED
         if self.travelled > C_RANGE:

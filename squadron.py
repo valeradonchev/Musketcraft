@@ -117,17 +117,17 @@ class Squadron():
     """
 
     def __init__(self, screen, angle, x, y, sizex, sizey, team, flags,
-                 play=True, defense=False):
+                 strength, play=True, defense=False):
         super().__init__()
         if team == "green":
-            file1, file2, fileFlag = greenCav
+            file1, fileFlag = greenCav
         elif team == "blue":
-            file1, file2, fileFlag = blueCav
-        self.coords = np.array([x, y], dtype=float)
-        self.speed = 0
-        self.moving = False
-        self.angle = angle
-        self.oldAngle = self.angle
+            file1, fileFlag = blueCav
+        coords = np.array([x, y], dtype=float)
+        # self.speed = 0
+        # self.moving = False
+        # self.angle = angle
+        # self.oldAngle = self.angle
         self.troops = []
         # add infantry to company
         for i in range(sizex * sizey):
@@ -139,29 +139,31 @@ class Squadron():
             """
             shifty = CV_GAPY * ((i % sizey) - sizey // 2)
             shiftx = CV_GAPX * ((i // sizey) - sizex // 2)
-            self.troops.append(Cavalry(screen, angle, shiftx, shifty, file1,
-                                       file2, self.coords))
-        self.flag = Flag(screen, (x, y), fileFlag, play)
+            self.troops.append(Cavalry(screen, angle, shiftx, shifty, strength,
+                                       team, file1, coords, play,
+                                       defense))
+        self.flag = Flag(screen, (x, y), angle, fileFlag, play)
         flags.append(self.flag)
-        self.target = None
-        self.maxSize = sizex * sizey
-        self.sizey = sizey
-        self.panicTime = 0
+        # self.target = None
+        # self.maxSize = sizex * sizey
+        # self.sizey = sizey
+        # self.panicTime = 0
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
         # self.bayonetButton = Button(screen, "Bayonets")
         # self.bayonets = False
-        self.chargeStart = 0
+        # self.chargeStart = 0
         self.play = play
-        self.defense = defense
+        # self.defense = defense
         self.team = team
         # used to id object for testing, not meant to be seen/used
         self.id = file1
 
     def unitInit(self, units):
         # set allies and enemies
-        self.enemies = [grp for grp in units if grp.team != self.team]
-        self.allies = [grp for grp in units if grp.team == self.team]
+        [unit.unitInit(units) for unit in self.troops]
+        # self.enemies = [grp for grp in units if grp.team != self.team]
+        # self.allies = [grp for grp in units if grp.team == self.team]
 
     @property
     def size(self):
@@ -169,191 +171,209 @@ class Squadron():
         return len(self.troops)
 
     @property
-    def formed(self):
-        # count of Cavalry in formation
-        return sum([infantry.formed for infantry in self.troops])
+    def flagVars(self):
+        return (self.flag.coords, self.flag.select, self.flag.attackMove,
+                self.flag.angle, self.flag.change)
 
-    @property
-    def idle(self):
-        # whether AI can move this Squadron
-        return not self.defense and self.target is None and not self.moving
+    # @property
+    # def formed(self):
+    #     # count of Cavalry in formation
+    #     return sum([infantry.formed for infantry in self.troops])
 
-    @property
-    def velocity(self):
-        # vertical, horizontal velocity of Squadron
-        velocityX = self.speed * math.cos(self.angle)
-        velocityY = -self.speed * math.sin(self.angle)
-        return np.array([velocityX, velocityY], dtype=float)
+    # @property
+    # def idle(self):
+    #     # whether AI can move this Squadron
+    #     return not self.defense and self.target is None and not self.moving
 
-    @property
-    def allowShoot(self):
-        # whether Squadron will currently aim at targets
-        return not self.moving or self.flag.attackMove
+    # @property
+    # def velocity(self):
+    #     # vertical, horizontal velocity of Squadron
+    #     velocityX = self.speed * math.cos(self.angle)
+    #     velocityY = -self.speed * math.sin(self.angle)
+    #     return np.array([velocityX, velocityY], dtype=float)
 
-    @property
-    def range(self):
-        # distance in pixels which Squadron will set enemies as target
-        return CV_SPEED
+    # @property
+    # def allowShoot(self):
+    #     # whether Squadron will currently aim at targets
+    #     return not self.moving or self.flag.attackMove
 
-    @property
-    def aimVars(self):
-        # variables that are passed to Cavalry for aim funciton
-        return self.target, self.angle, self.allowShoot
+    # @property
+    # def range(self):
+    #     # distance in pixels which Squadron will set enemies as target
+    #     return CV_SPEED
 
-    @property
-    def formVars(self):
-        # variables that are passed to Cavalry for form function
-        return self.angle, self.oldAngle, self.coords
+    # @property
+    # def aimVars(self):
+    #     # variables that are passed to Cavalry for aim funciton
+    #     return self.target, self.angle, self.allowShoot
 
-    @property
-    def morale(self):
-        # update chance to flee
-        allyDist = self.distanceMany([grp.coords for grp in self.allies])
-        allySize = sum([grp.size for grp, d in zip(self.allies, allyDist)
-                        if d < CV_SIGHT])
-        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
-        enemySize = sum([grp.size for grp, d in zip(self.enemies, enemyDist)
-                         if d < CV_SIGHT])
-        deathMorale = CV_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
-        if allySize > 0:
-            return CV_MORALE + deathMorale * enemySize / allySize
-        return 0
+    # @property
+    # def formVars(self):
+    #     # variables that are passed to Cavalry for form function
+    #     return self.angle, self.oldAngle, self.coords
 
-    def setSpeed(self, coords):
-        # set speed to min of default, distance to coords
-        if self.chargeStart == 0:
-            speed = CV_SPEED
-        else:
-            speed = (time.get_ticks() - self.chargeStart) // 100 * CV_ACCEL
-        self.speed = min(speed, self.distance(coords))
-        [cavalry.setSpeed(self.speed) for cavalry in self.troops]
+    # @property
+    # def morale(self):
+    #     # update chance to flee
+    #     allyDist = self.distanceMany([grp.coords for grp in self.allies])
+    #     allySize = sum([grp.size for grp, d in zip(self.allies, allyDist)
+    #                     if d < CV_SIGHT])
+    #     enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+    #     enemySize = sum([grp.size for grp, d in zip(self.enemies, enemyDist)
+    #                      if d < CV_SIGHT])
+    #     deathMorale = CV_MORALE_MIN * (1 - (self.size - 1) / self.maxSize)
+    #     if allySize > 0:
+    #         return CV_MORALE + deathMorale * enemySize / allySize
+    #     return 0
 
-    def distance(self, coords):
-        # measure straight line distance Squadron to coords
-        return np.linalg.norm(self.coords - coords)
+    # def setSpeed(self, coords):
+    #     # set speed to min of default, distance to coords
+    #     if self.chargeStart == 0:
+    #         speed = CV_SPEED
+    #     else:
+    #         speed = (time.get_ticks() - self.chargeStart) // 100 * CV_ACCEL
+    #     self.speed = min(speed, self.distance(coords))
+    #     [cavalry.setSpeed(self.speed) for cavalry in self.troops]
 
-    def distanceMany(self, coords):
-        # measure straight line distance Squadron to list of coords
-        return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
+    # def distance(self, coords):
+    #     # measure straight line distance Squadron to coords
+    #     return np.linalg.norm(self.coords - coords)
 
-    def stop(self):
-        # stop Squadron, Cavalry
-        self.speed = 0
-        [infantry.stop() for infantry in self.troops]
-        self.moving = False
+    # def distanceMany(self, coords):
+    #     # measure straight line distance Squadron to list of coords
+    #     if len(coords) == 0:
+    #         return []
+    #     return np.linalg.norm(self.coords[None, :] - np.array(coords), axis=1)
+
+    # def stop(self):
+    #     # stop Squadron, Cavalry
+    #     self.speed = 0
+    #     [infantry.stop() for infantry in self.troops]
+    #     self.moving = False
 
     def update(self):
         # move Squadron, update Cavalry, panic if necessary
-        if self.panicTime != 0:
-            [infantry.panic() for infantry in self.troops]
-            if time.get_ticks() - self.panicTime > CV_PANIC_TIME:
-                self.troops = []
-        else:
-            self.coords += self.velocity
-            [infantry.update(self.allowShoot) for infantry in self.troops]
+        [unit.panic() for unit in self.troops if unit.panicTime != 0]
+        for unit in self.troops:
+            if unit.size <= 0:
+                self.troops.remove(unit)
+            elif unit.panicTime == 0:
+                unit.update()
+        # if self.panicTime != 0:
+        #     [infantry.panic() for infantry in self.troops]
+        #     if time.get_ticks() - self.panicTime > CV_PANIC_TIME:
+        #         self.troops = []
+        # else:
+        #     self.coords += self.velocity
+        #     [infantry.update(self.allowShoot) for infantry in self.troops]
 
     def follow(self, flags):
         # move Squadron and Cavalry to flag
-        if self.play and self.size > 0:
-            self.flag.checkDrag(flags, self.coords)
-        flagCoords = self.flag.coords
-        flagPlaced = self.flag.select == 0 and self.distance(flagCoords) > 0
-        if flagPlaced and (self.target is None or not self.flag.attackMove):
-            self.chargeStart = 0
-            if self.formed < self.size:
-                self.moving = True
-                self.lookAt(flagCoords)
-                [cavalry.form(*self.formVars) for cavalry in self.troops]
-            else:
-                self.setSpeed(flagCoords)
-                self.lookAt(flagCoords)
-        elif self.moving:
-            self.oldAngle = self.angle
-            self.stop()
-        if self.flag.select > 0 and self.moving:
-            self.lookAt(flagCoords)
-            self.stop()
+        if self.play:
+            self.flag.checkDrag(flags)
+        [unit.follow(*self.flagVars) for unit in self.troops]
+        self.flag.change = False
+        # if self.play and self.size > 0:
+        #     self.flag.checkDrag(flags, self.coords)
+        # flagCoords = self.flag.coords
+        # flagPlaced = self.flag.select == 0 and self.distance(flagCoords) > 0
+        # if flagPlaced and (self.target is None or not self.flag.attackMove):
+        #     self.chargeStart = 0
+        #     if self.formed < self.size:
+        #         self.moving = True
+        #         self.lookAt(flagCoords)
+        #         [cavalry.form(*self.formVars) for cavalry in self.troops]
+        #     else:
+        #         self.setSpeed(flagCoords)
+        #         self.lookAt(flagCoords)
+        # elif self.moving:
+        #     self.oldAngle = self.angle
+        #     self.stop()
+        # if self.flag.select > 0 and self.moving:
+        #     self.lookAt(flagCoords)
+        #     self.stop()
 
-    def lookAt(self, coords):
-        # set rotation to angle from current center to new point
-        distance = coords - self.coords
-        self.angle = (math.atan2(-1 * distance[1], distance[0]))
+    # def lookAt(self, coords):
+    #     # set rotation to angle from current center to new point
+    #     distance = coords - self.coords
+    #     self.angle = (math.atan2(-1 * distance[1], distance[0]))
 
-    def findTarget(self):
-        # select target
-        enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
-        for target, d in zip(self.enemies, enemyDist):
-            if self.target is None:
-                seen = d <= CV_SIGHT
-                if seen and target.size > 0 and self.allowShoot:
-                    self.target = target
-                    if self.moving:
-                        self.oldAngle = self.angle
-                        self.stop()
+    # def findTarget(self):
+    #     # select target
+    #     enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
+    #     for target, d in zip(self.enemies, enemyDist):
+    #         if self.target is None:
+    #             seen = d <= CV_SIGHT
+    #             if seen and target.size > 0 and self.allowShoot:
+    #                 self.target = target
+    #                 if self.moving:
+    #                     self.oldAngle = self.angle
+    #                     self.stop()
 
     def aim(self):
         # turn toward selected target
-        if self.size == 0:
-            return
-        self.findTarget()
-        if self.target is None:
-            return
-        self.lookAt(self.target.coords)
-        toTarget = self.distance(self.target.coords)
-        dead = self.target.size == 0
-        if toTarget > CV_SIGHT or dead or not self.allowShoot:
-            self.target = None
-            self.stop()
-            [cavalry.aim(*self.aimVars) for cavalry in self.troops]
-        elif abs(self.oldAngle - self.angle) > CV_FIRE_ANGLE:
-            if self.formed < self.size:
-                [cavalry.form(*self.formVars) for cavalry in self.troops]
-            else:
-                self.oldAngle = self.angle
-                self.stop()
-        elif toTarget > self.range:
-            if toTarget > CV_RANGE and self.chargeStart == 0:
-                self.chargeStart = time.get_ticks()
-            self.flag.attackMove = True
-            for cavalry in self.troops:
-                cavalry.angle = self.angle
-            self.setSpeed(self.target.coords)
-        else:
-            if self.chargeStart != 0:
-                self.hitBayonets()
-                self.chargeStart = 0
-            self.stop()
-            [cavalry.aim(*self.aimVars) for cavalry in self.troops]
+        [troop.aim() for troop in self.troops]
+        # if self.size == 0:
+        #     return
+        # self.findTarget()
+        # if self.target is None:
+        #     return
+        # self.lookAt(self.target.coords)
+        # toTarget = self.distance(self.target.coords)
+        # dead = self.target.size == 0
+        # if toTarget > CV_SIGHT or dead or not self.allowShoot:
+        #     self.target = None
+        #     self.stop()
+        #     [cavalry.aim(*self.aimVars) for cavalry in self.troops]
+        # elif abs(self.oldAngle - self.angle) > CV_FIRE_ANGLE:
+        #     if self.formed < self.size:
+        #         [cavalry.form(*self.formVars) for cavalry in self.troops]
+        #     else:
+        #         self.oldAngle = self.angle
+        #         self.stop()
+        # elif toTarget > self.range:
+        #     if toTarget > CV_RANGE and self.chargeStart == 0:
+        #         self.chargeStart = time.get_ticks()
+        #     self.flag.attackMove = True
+        #     for cavalry in self.troops:
+        #         cavalry.angle = self.angle
+        #     self.setSpeed(self.target.coords)
+        # else:
+        #     if self.chargeStart != 0:
+        #         self.hitBayonets()
+        #         self.chargeStart = 0
+        #     self.stop()
+        #     [cavalry.aim(*self.aimVars) for cavalry in self.troops]
 
-    def hitBayonets(self):
-        # take losses from defended enemies
-        angleDiff = (self.target.angle - self.angle) % (math.pi * 2)
-        angleDiff = math.pi - angleDiff
-        carre = hasattr(self.target, 'formation')
-        carre = carre and self.target.formation == "Carre"
-        if -CV_FIRE_ANGLE < angleDiff < CV_FIRE_ANGLE or carre:
-            for cavalry in self.troops:
-                if random.randint(0, 99) < CV_ANTI_CAV:
-                    self.troops.remove(cavalry)
+    # def hitBayonets(self):
+    #     # take losses from defended enemies
+    #     angleDiff = (self.target.angle - self.angle) % (math.pi * 2)
+    #     angleDiff = math.pi - angleDiff
+    #     carre = hasattr(self.target, 'formation')
+    #     carre = carre and self.target.formation == "Carre"
+    #     if -CV_FIRE_ANGLE < angleDiff < CV_FIRE_ANGLE or carre:
+    #         for cavalry in self.troops:
+    #             if random.randint(0, 99) < CV_ANTI_CAV:
+    #                 self.troops.remove(cavalry)
 
-    def getHit(self, bayonet=False):
-        # kill own Cavalry when shot
-        if self.size == 0:
-            return
-        self.troops.remove(random.choice(self.troops))
-        morale = self.morale * CV_PANIC_BAY ** bayonet
-        if random.randint(0, 99) < morale and self.panicTime == 0:
-            [infantry.startPanic() for infantry in self.troops]
-            self.panicTime = time.get_ticks()
+    # def getHit(self, bayonet=False):
+    #     # kill own Cavalry when shot
+    #     if self.size == 0:
+    #         return
+    #     self.troops.remove(random.choice(self.troops))
+    #     morale = self.morale * CV_PANIC_BAY ** bayonet
+    #     if random.randint(0, 99) < morale and self.panicTime == 0:
+    #         [infantry.startPanic() for infantry in self.troops]
+    #         self.panicTime = time.get_ticks()
 
-    def getShelled(self, ball):
-        # kill own Cavalry from Cannon roundshot
-        for unit in self.troops:
-            if unit.rect.colliderect(ball.rect):
-                self.troops.remove(unit)
-        if random.randint(0, 99) < self.morale and self.panicTime == 0:
-            [infantry.startPanic() for infantry in self.troops]
-            self.panicTime = time.get_ticks()
+    # def getShelled(self, ball):
+    #     # kill own Cavalry from Cannon roundshot
+    #     for unit in self.troops:
+    #         if unit.rect.colliderect(ball.rect):
+    #             self.troops.remove(unit)
+    #     if random.randint(0, 99) < self.morale and self.panicTime == 0:
+    #         [infantry.startPanic() for infantry in self.troops]
+    #         self.panicTime = time.get_ticks()
 
     def orders(self):
         # give orders other than move for Squadron
@@ -384,17 +404,18 @@ class Squadron():
 
     def AIsupport(self):
         # move to visible allies in combat
-        if self.play:
+        if self.play or self.size == 0:
             return
-        allyDist = self.distanceMany([grp.coords for grp in self.allies])
-        for ally, d in zip(self.allies, allyDist):
+        unit = self.troops[0]
+        allyDist = unit.distanceMany([grp.coords for grp in unit.allies])
+        for ally, d in zip(unit.allies, allyDist):
             canSee = d < CV_SIGHT
-            if self.idle and ally.target is not None and canSee:
+            if unit.idle and ally.target is not None and canSee:
                 self.AIcommand(ally.coords, True)
 
     def blitme(self):
         # print elements of Squadron
-        [infantry.blitme() for infantry in self.troops]
+        [unit.blitme() for unit in self.troops]
         if self.size > 0:
             self.flag.blitme()
         # if self.showOrders > 1:

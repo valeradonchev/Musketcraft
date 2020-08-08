@@ -22,9 +22,13 @@ I_PANIC_TIME = 1000 // SPEED  # Time to panic
 I_PANIC_BAY = 1.5  # Factor of chance to panic from bayonets
 I_BAY_CHANCE = 60  # Percent chance to hit with bayonet
 I_FIRE_ANGLE = math.pi / 12
+I_MAX_SHELLED = 15  # largest number of units Infantry can lose per cannon
+I_MIN_SHELLED = 3  # smallest number of units Infantry can lose per cannon
+I_MED_SHELLED = (I_MAX_SHELLED + I_MIN_SHELLED) / 2
+I_AMP_SHELLED = (I_MAX_SHELLED - I_MIN_SHELLED) / 2
 # Angle (in radians) within which infantry will fire
 # cannon settings
-C_GAPY = 250 * SCALE  # vertical distance between centers of cannon
+C_GAPY = 100 * SCALE  # vertical distance between centers of cannon
 C_SPEED = .2 * SCALE * SPEED  # speed of cannon
 C_AIM = 2000 // SPEED  # aim time of cannon in millisec
 C_END_FIRE = 800 // SPEED  # time to end fire animation of cannon
@@ -32,15 +36,19 @@ C_LOAD = 5000 // SPEED  # reload time of cannon in millisec
 C_RANGE = 1500 * SCALE  # range of cannon (SHOULD BE 15000)
 C_SIGHT = 1600 * SCALE  # sight range of cannon
 C_MIN_RANGE = 100 * SCALE  # Cannoneers flee from enemies at this distance
-C_ACCURACY = math.pi / 6  # variation in radians of projectile trajectory
+C_ACCURACY = math.pi / 12  # variation in radians of projectile trajectory
 C_DELAY = 300 // SPEED  # +/- range of random firing dealy
 C_MORALE = -10  # base morale - percent chance to flee
 C_MORALE_MIN = 25  # max percent chance to flee
 C_PANIC_TIME = 1000 // SPEED  # Time to panic
 C_PANIC_BAY = 1.5  # Factor of chance to panic from bayonets
 C_FIRE_ANGLE = math.pi / 12
+C_MAX_SHELLED = 1  # largest number of units Cannon can lose per cannon
+C_MIN_SHELLED = 1  # smallest number of units Cannon can lose per cannon
+C_MED_SHELLED = (C_MAX_SHELLED + C_MIN_SHELLED) / 2
+C_AMP_SHELLED = (C_MAX_SHELLED - C_MIN_SHELLED) / 2
 # Angle (in radians) within which cannon will fire
-C_MEN_PER = 4  # number of Cannoneers needed to man each cannon
+C_MEN_PER = 8  # number of Cannoneers needed to man each cannon
 # Cannoneer settings
 CC_GAPX = 100 * SCALE  # horizontal distance between Cannoneer and Cannon
 CC_GAPY = 80 * SCALE  # vertical distance between Cannoneer and Cannon
@@ -66,6 +74,10 @@ CV_PANIC_BAY = 1.5  # Factor of chance to panic from bayonets
 CV_BAY_CHANCE = 90  # Percent chance to hit with bayonet
 CV_FIRE_ANGLE = math.pi / 12
 # Angle (in radians) within which cavalry will charge
+CV_MAX_SHELLED = 8  # largest number of units Cavalry can lose per cannon
+CV_MIN_SHELLED = 3  # smallest number of units Cavalry can lose per cannon
+CV_MED_SHELLED = (C_MAX_SHELLED + C_MIN_SHELLED) / 2
+CV_AMP_SHELLED = (C_MAX_SHELLED - C_MIN_SHELLED) / 2
 # flag button settings
 FB_SIZE = (120, 50)  # size of button
 FB_COLOR = (150, 0, 0)  # color of button
@@ -110,15 +122,17 @@ blueCannon = scaleImage('images/blue_cannon.png',
                         'images/blue_cannon_firing.png',
                         'images/blue_flag.png',
                         'images/cannonball.png',
-                        'images/blue_human.png')
+                        # 'images/blue_human.png'
+                        )
 greenCannon = scaleImage('images/green_cannon.png',
                          'images/green_cannon_firing.png',
                          'images/green_flag.png',
                          'images/cannonball.png',
-                         'images/green_human.png')
+                         # 'images/green_human.png'
+                         )
 blueCav = scaleImage('images/blue_cavalry.png',
-                     'images/blue_cavalry_slash.png',
+                     # 'images/blue_cavalry_slash.png',
                      'images/blue_flag.png',)
 greenCav = scaleImage('images/green_cavalry.png',
-                      'images/green_cavalry_slash.png',
+                      # 'images/green_cavalry_slash.png',
                       'images/green_flag.png',)
