@@ -1,11 +1,12 @@
 import sys
 import pygame
-from settings import BG_COLOR, C_MEN_PER
+from settings import BG_COLOR, FLECHE_COLOR, ROAD_COLOR, RIVER_COLOR
 from company import Company
 from squadron import Squadron
 from battery import Battery
-from settings import blueCannon, greenCannon, blueCav, greenCav, blueImages
+from settings import town
 import cProfile
+import math
 
 
 def check_events(color, events, units, screen, flags, cprof):
@@ -48,7 +49,7 @@ def check_events(color, events, units, screen, flags, cprof):
                 units = []
                 flags = []
             if event.unicode == "g":
-                cprof.print_stats('cumtime')
+                cprof.print_stats('tottime')
     for event in events:
         units = event.check(units)
         if event.triggered:
@@ -77,6 +78,31 @@ def update(screen, units, flags):
     """
     # redraw screen
     screen.fill(BG_COLOR)
+    pygame.draw.arc(screen, FLECHE_COLOR, pygame.Rect(770, 550, 40, 30),
+                    math.pi / 4, math.pi * 3 / 2, 5)
+    pygame.draw.arc(screen, FLECHE_COLOR, pygame.Rect(790, 500, 40, 30),
+                    math.pi / 4, math.pi * 3 / 2, 5)
+    pygame.draw.arc(screen, FLECHE_COLOR, pygame.Rect(810, 450, 40, 30),
+                    math.pi / 4, math.pi * 3 / 2, 5)
+    pygame.draw.arc(screen, FLECHE_COLOR, pygame.Rect(520, 400, 40, 30),
+                    math.pi / 2, math.pi * 3 / 2, 5)
+    pygame.draw.arc(screen, FLECHE_COLOR, pygame.Rect(840, 220, 80, 80),
+                    math.pi / 4, math.pi * 3 / 2, 5)
+    pygame.draw.line(screen, RIVER_COLOR, (0, 500), (900, 150), 5)
+    pygame.draw.line(screen, RIVER_COLOR, (900, 150), (1000, 0), 5)
+    pygame.draw.line(screen, ROAD_COLOR, (450, 250), (800, 110), 5)
+    pygame.draw.line(screen, ROAD_COLOR, (450, 250), (450, 800), 5)
+    pygame.draw.line(screen, ROAD_COLOR, (620, 390), (840, 740), 5)
+    pygame.draw.line(screen, ROAD_COLOR, (860, 740), (940, 520), 5)
+    pygame.draw.line(screen, ROAD_COLOR, (940, 520), (700, 150), 5)
+    pygame.draw.line(screen, ROAD_COLOR, (800, 120), (1040, 220), 5)
+    townRect = town.get_rect()
+    screen.blit(town, pygame.Rect(760, 80, *townRect.size))
+    screen.blit(town, pygame.Rect(1000, 180, *townRect.size))
+    screen.blit(town, pygame.Rect(900, 480, *townRect.size))
+    screen.blit(town, pygame.Rect(800, 700, *townRect.size))
+    screen.blit(town, pygame.Rect(580, 350, *townRect.size))
+    screen.blit(town, pygame.Rect(420, 400, *townRect.size))
     # remove dead units
     [units.remove(company) for company in units if company.size == 0]
     [company.unitInit(units) for company in units]

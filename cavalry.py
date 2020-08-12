@@ -195,6 +195,7 @@ class Cavalry(Sprite):
                 self.targetxy = fCoords + self.relatCoords
             self.move()
         elif self.moving:
+            self.angle = angle
             self.oldAngle = self.angle
             self.stop()
         if fSelect > 0 and self.moving:
@@ -245,15 +246,17 @@ class Cavalry(Sprite):
             return
         enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
         for target, d in zip(self.enemies, enemyDist):
-            if self.target is None:
-                seen = d <= CV_SIGHT
-                panic = target.panicTime != 0
-                if seen and target.size > 0 and self.allowShoot and not panic:
-                    self.target = target
-                    if self.moving:
-                        self.oldAngle = self.angle
-                        self.stop()
-                    return
+            seen = d <= CV_SIGHT
+            panic = target.panicTime != 0
+            allow = seen and target.size > 0 and self.allowShoot and not panic
+            closer = self.target is None
+            closer = closer or d < self.distance(self.target.coords)
+            if allow and closer:
+                self.target = target
+                if self.moving:
+                    self.oldAngle = self.angle
+                    self.stop()
+                return
 
     def aim(self):
         # turn toward selected target

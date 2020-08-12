@@ -146,12 +146,15 @@ class Squadron():
         # self.bayonets = False
         self.play = play
         self.team = team
+        self.oldUnits = []
         # used to id object for testing, not meant to be seen/used
         self.id = file1
 
     def unitInit(self, units):
         # set allies and enemies
-        [unit.unitInit(units) for unit in self.troops]
+        if units != self.oldUnits:
+            self.oldUnits = units
+            [unit.unitInit(units) for unit in self.troops]
 
     @property
     def size(self):
@@ -217,9 +220,11 @@ class Squadron():
         unit = self.troops[0]
         allyDist = unit.distanceMany([grp.coords for grp in unit.allies])
         for ally, d in zip(unit.allies, allyDist):
+            cannon = hasattr(ally, 'shot')
             canSee = d < CV_SIGHT
-            if unit.idle and ally.target is not None and canSee:
-                self.AIcommand(ally.coords, True)
+            if unit.idle and ally.target is not None and canSee and not cannon:
+                self.AIcommand(ally.target.coords, True)
+                break
 
     def blitme(self):
         # print elements of Squadron

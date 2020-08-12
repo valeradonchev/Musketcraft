@@ -148,12 +148,15 @@ class Battery():
         # self.bayonetButton = Button(screen, "Bayonets")
         self.play = play
         self.team = team
+        self.oldUnits = []
         # used to id object for testing, not meant to be seen/used
         self.id = file1
 
     def unitInit(self, units):
         # set allies and enemies
-        [can.unitInit(units) for can in self.troops]
+        if units != self.oldUnits:
+            self.oldUnits = units
+            [unit.unitInit(units) for unit in self.troops]
 
     @property
     def size(self):
@@ -219,18 +222,20 @@ class Battery():
         trp = self.troops[0]
         allyDist = trp.distanceMany([grp.coords for grp in trp.allies])
         for ally, d in zip(trp.allies, allyDist):
+            cannon = hasattr(ally, 'shot')
             canSee = d < C_SIGHT
-            if trp.idle and ally.target is not None and canSee:
-                self.AIcommand(ally.coords, True)
+            if trp.idle and ally.target is not None and canSee and not cannon:
+                self.AIcommand(ally.target.coords, True)
+                break
 
     def blitme(self):
         # print elements of Battery
+        [cannon.blitme() for cannon in self.troops]
         if self.size > 0:
             self.flag.blitme()
         # if self.showOrders > 1:
             # self.bayonetButton.blitme()
         # [man.blitme() for man in self.troops]
-        [cannon.blitme() for cannon in self.troops]
 
     def __str__(self):
         return self.id

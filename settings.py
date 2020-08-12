@@ -3,17 +3,18 @@ import pygame
 """Store constants for use in game, not altered by code/user
 """
 # scale of game elements
-SCALE = .3
-SPEED = 1
+SCALE = .3  # size of sprites, speed, range
+SPEED = 1  # speed of movement, firing
+# TOLER = .1  # distance from destination at which units stop
 # infantry settings
 I_GAPX = 70 * SCALE  # horizontal distance between centers of infantry
 I_GAPY = 70 * SCALE  # vertical distance between centers of infantry
-I_SPEED = 1 * SCALE * SPEED  # speed of infantry
+I_SPEED = .4 * SCALE * SPEED  # speed of infantry
 I_AIM = 1000 // SPEED  # aim time of infantry in millisec
 I_END_FIRE = 400 // SPEED  # time to end fire animation of infantry
 I_LOAD = 1000 // SPEED  # reload time of infantry in millisec
-I_RANGE = 450 * SCALE  # range of infantry
-I_SIGHT = 600 * SCALE  # sight range of infantry
+I_RANGE = 300 * SCALE  # range of infantry
+I_SIGHT = 350 * SCALE  # sight range of infantry
 I_CHANCE = 1  # infantry's base percent chance to hit
 I_DELAY = 100 // SPEED  # +/- range of random firing dealy
 I_MORALE = -10  # base morale - percent chance to flee
@@ -29,12 +30,12 @@ I_AMP_SHELLED = (I_MAX_SHELLED - I_MIN_SHELLED) / 2
 # Angle (in radians) within which infantry will fire
 # cannon settings
 C_GAPY = 100 * SCALE  # vertical distance between centers of cannon
-C_SPEED = .2 * SCALE * SPEED  # speed of cannon
-C_AIM = 2000 // SPEED  # aim time of cannon in millisec
+C_SPEED = .1 * SCALE * SPEED  # speed of cannon
+C_AIM = 1000 // SPEED  # aim time of cannon in millisec
 C_END_FIRE = 800 // SPEED  # time to end fire animation of cannon
-C_LOAD = 5000 // SPEED  # reload time of cannon in millisec
-C_RANGE = 1500 * SCALE  # range of cannon (SHOULD BE 15000)
-C_SIGHT = 1600 * SCALE  # sight range of cannon
+C_LOAD = 1000 // SPEED  # reload time of cannon in millisec
+C_RANGE = 1000 * SCALE  # range of cannon (SHOULD BE 15000)
+C_SIGHT = 1100 * SCALE  # sight range of cannon
 C_MIN_RANGE = 100 * SCALE  # Cannoneers flee from enemies at this distance
 C_ACCURACY = math.pi / 12  # variation in radians of projectile trajectory
 C_DELAY = 300 // SPEED  # +/- range of random firing dealy
@@ -54,10 +55,11 @@ CC_GAPX = 100 * SCALE  # horizontal distance between Cannoneer and Cannon
 CC_GAPY = 80 * SCALE  # vertical distance between Cannoneer and Cannon
 # Cannonball settings
 CB_SPEED = 5 * SCALE * SPEED  # speed of Cannonball
+CB_MULT = 1.2  # extra mult for how far Cannonball travels
 # cavalry settings
-CV_GAPX = 150 * SCALE  # horizontal distance between centers of cavalry
+CV_GAPX = 70 * SCALE  # horizontal distance between centers of cavalry
 CV_GAPY = 70 * SCALE  # vertical distance between centers of cavalry
-CV_SPEED = 3 * SCALE * SPEED  # speed of cavalry
+CV_SPEED = 1 * SCALE * SPEED  # speed of cavalry
 CV_ACCEL = .3 * SCALE * SPEED  # rate at which cavalry in a charge accelerates
 CV_ANTI_CAV = 50  # percent chance of cavalry to die when they hit bayonets
 CV_AIM = 100 // SPEED  # aim time of cavalry in millisec
@@ -136,3 +138,4 @@ blueCav = scaleImage('images/blue_cavalry.png',
 greenCav = scaleImage('images/green_cavalry.png',
                       # 'images/green_cavalry_slash.png',
                       'images/green_flag.png',)
+town = scaleImage('images/town.png')[0]

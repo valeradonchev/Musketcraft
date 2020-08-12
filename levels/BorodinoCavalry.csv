@@ -1,0 +1,4 @@
+x,y,angle,sizex,sizey,team,strength,play,defend
+620,470,3.141592654,2,2,green,120,FALSE,FALSE
+880,740,3.141592654,2,2,green,120,FALSE,FALSE
+1080,120,2.617993878,2,2,green,120,FALSE,FALSE

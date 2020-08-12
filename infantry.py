@@ -8,15 +8,18 @@ from pygame.sprite import Sprite
 from pygame import time
 import random
 import numpy as np
+"set SPEED"
+"add cavalry, blue cannons"
+"events"
 
+"AI retreat"
+"troops can't move through each other"
 "review numbers - smaller ranges, fire rate"
 "show health?"
-"increase scale - boxes represent battalions?"
+"terrain?"
 "line vs. column formation"
 "AI support target ally's target?"
 "computer control"
-"retarget to closest"
-"troops can't move through each other"
 "make ratios of units better"
 
 "cavalry should be injured without charge"
@@ -276,6 +279,7 @@ class Infantry(Sprite):
                 self.targetxy = fCoords + self.relatCoords
             self.move()
         elif self.moving:
+            self.angle = angle
             self.oldAngle = self.angle
             self.stop()
         if fSelect > 0 and self.moving:
@@ -322,15 +326,17 @@ class Infantry(Sprite):
             return
         enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
         for target, d in zip(self.enemies, enemyDist):
-            if self.target is None:
-                seen = d <= I_SIGHT
-                panic = target.panicTime != 0
-                if seen and target.size > 0 and self.allowShoot and not panic:
-                    self.target = target
-                    if self.moving:
-                        self.oldAngle = self.angle
-                        self.stop()
-                    return
+            seen = d <= I_SIGHT
+            panic = target.panicTime != 0
+            allow = seen and target.size > 0 and self.allowShoot and not panic
+            closer = self.target is None
+            closer = closer or d < self.distance(self.target.coords)
+            if allow and closer:
+                self.target = target
+                if self.moving:
+                    self.oldAngle = self.angle
+                    self.stop()
+                return
 
     def aim(self):
         # turn toward selected target
@@ -431,4 +437,4 @@ class Infantry(Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = self.coords
         self.screen.blit(self.image, self.rect)
-        # pygame.draw.circle(self.screen, pygame.Color("red"), self.targetxy.astype(int), 1)
+        pygame.draw.circle(self.screen, pygame.Color("red"), self.targetxy.astype(int), 1)

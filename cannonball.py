@@ -1,7 +1,7 @@
 import pygame
 from pygame.sprite import Sprite
 import numpy as np
-from settings import CB_SPEED, C_RANGE
+from settings import CB_SPEED, C_RANGE, CB_MULT
 import math
 
 
@@ -61,7 +61,7 @@ class Cannonball(Sprite):
                 self.enemies.remove(company)
         self.coords += self.velocity
         self.travelled += CB_SPEED
-        if self.travelled > C_RANGE:
+        if self.travelled > C_RANGE * CB_MULT:
             cannon.shot = None
 
     def blitme(self):

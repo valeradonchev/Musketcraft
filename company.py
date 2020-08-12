@@ -150,12 +150,15 @@ class Company():
         self.play = play
         self.team = team
         self.formation = "Line"
+        self.oldUnits = []
         # used to id object for testing, not meant to be seen/used
         self.id = fil1
 
     def unitInit(self, units):
         # set allies and enemies
-        [unit.unitInit(units) for unit in self.troops]
+        if units != self.oldUnits:
+            self.oldUnits = units
+            [unit.unitInit(units) for unit in self.troops]
 
     @property
     def size(self):
@@ -243,9 +246,11 @@ class Company():
         unit = self.troops[0]
         allyDist = unit.distanceMany([grp.coords for grp in unit.allies])
         for ally, d in zip(unit.allies, allyDist):
+            cannon = hasattr(ally, 'shot')
             canSee = d < I_SIGHT
-            if unit.idle and ally.target is not None and canSee:
-                self.AIcommand(ally.coords, True)
+            if unit.idle and ally.target is not None and canSee and not cannon:
+                self.AIcommand(ally.target.coords, True)
+                break
 
     def AIcarre(self):
         [troop.AIcarre() for troop in self.troops]
