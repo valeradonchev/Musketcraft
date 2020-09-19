@@ -111,10 +111,10 @@ class Cavalry(Sprite):
         # self.formed = False
         self.targetxy = np.array([-1, -1], dtype=float)
         self.target = None
-        self.aimedOn = 0
-        self.firedOn = 0
+        self.aimedOn = -1
+        self.firedOn = -1
         self.panicAngle = 0
-        self.panicTime = 0
+        self.panicTime = -1
         self.maxSize = size
         self.size = size
         self.team = team
@@ -247,7 +247,7 @@ class Cavalry(Sprite):
         enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
         for target, d in zip(self.enemies, enemyDist):
             seen = d <= CV_SIGHT
-            panic = target.panicTime != 0
+            panic = target.panicTime > 0
             allow = seen and target.size > 0 and self.allowShoot and not panic
             closer = self.target is None
             closer = closer or d < self.distance(self.target.coords)
@@ -266,7 +266,7 @@ class Cavalry(Sprite):
         self.lookAt(self.target.coords)
         toTarget = self.distance(self.target.coords)
         dead = self.target.size == 0 or self.target not in self.enemies
-        dead = dead or self.target.panicTime != 0
+        dead = dead or self.target.panicTime > 0
         if toTarget > CV_SIGHT or dead or not self.allowShoot:
             self.target = None
             self.stop()
@@ -306,40 +306,43 @@ class Cavalry(Sprite):
         self.angle = self.panicAngle
         self.setSpeed(CV_SPEED)
         self.update()
-        if time.get_ticks() - self.panicTime > CV_PANIC_TIME:
+        self.panicTime -= 1
+        if self.panicTime == 0:
             self.size = 0
 
     def startPanic(self):
         # set direction Infantry moves away in when panicking
         self.target = None
         self.panicAngle = self.angle + math.pi * random.uniform(.75, 1.25)
-        self.panicTime = time.get_ticks()
+        self.panicTime = CV_PANIC_TIME
 
     def fire(self):
         # fire when target isn't None, reload after firing
         outrange = self.target is None
         outrange = outrange or self.distance(self.target.coords) > self.range
         if outrange or not self.allowShoot:
-            self.aimedOn = 0
-        if self.aimedOn == 0 and self.target is not None and self.firedOn == 0:
-            self.aimedOn = time.get_ticks() + random.randint(-CV_DELAY, CV_DELAY)
-        if self.aimedOn != 0 and time.get_ticks() - self.aimedOn > CV_AIM:
+            self.aimedOn = -1
+        if self.aimedOn == -1 and self.target is not None and self.firedOn == -1:
+            self.aimedOn = CV_AIM + random.randint(-CV_DELAY, CV_DELAY)
+        if self.aimedOn > 0:
+            self.aimedOn -= 1
+        if self.aimedOn == 0:
             # self.costume = self.slashing
-            self.firedOn = time.get_ticks()
-            self.aimedOn = 0
+            self.firedOn = CV_LOAD
+            self.aimedOn = -1
             chance = CV_BAY_CHANCE
             hits = np.random.binomial(self.size, min(chance / 100, 1))
             self.target.getHit(hits)
-        if self.firedOn != 0 and time.get_ticks() - self.firedOn > CV_END_FIRE:
-            self.costume = self.ready
-        if self.firedOn != 0 and time.get_ticks() - self.firedOn > CV_LOAD:
-            self.firedOn = 0
+        if self.firedOn > -1:
+            self.firedOn -= 1
+        # if self.firedOn + CV_END_FIRE == CV_LOAD:
+            # self.costume = self.ready
 
     def getHit(self, hits, bayonet=False):
         # reduce size by number of hits
         self.size -= hits
         morale = self.morale * CV_PANIC_BAY ** bayonet
-        if random.randint(0, 99) < morale and self.panicTime == 0:
+        if random.randint(0, 99) < morale and self.panicTime == -1:
             self.startPanic()
         # print(self.size)
 

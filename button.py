@@ -32,14 +32,17 @@ class Button:
         self.screen = screen
         self.rect = pygame.Rect(0, 0, *FB_SIZE)
         self.color = FB_COLOR
-        self.txtColor = FB_TXT_COLOR
-        font = pygame.font.SysFont('arial', FB_TXT_SIZE)
-        self.msgImage = font.render(text, True, self.txtColor, self.color)
+        self.txtC = FB_TXT_COLOR
+        self.font = pygame.font.SysFont('arial', FB_TXT_SIZE)
+        self.msgImage = self.font.render(text, True, self.txtC, self.color)
         self.msgImageRect = self.msgImage.get_rect()
 
-    def draw(self, center):
+    def draw(self, center, text=None):
         # Set button position
         self.rect.center = center
+        if text is not None:
+            self.msgImage = self.font.render(text, True, self.txtC, self.color)
+            self.msgImageRect = self.msgImage.get_rect()
         self.msgImageRect.center = center
 
     def blitme(self):

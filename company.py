@@ -147,6 +147,7 @@ class Company():
         self.bayonetButton = Button(screen, "Bayonets")
         self.carreButton = Button(screen, "Carre")
         self.lineButton = Button(screen, "Line")
+        self.healthDisp = Button(screen, str(self.health))
         self.play = play
         self.team = team
         self.formation = "Line"
@@ -157,7 +158,7 @@ class Company():
     def unitInit(self, units):
         # set allies and enemies
         if units != self.oldUnits:
-            self.oldUnits = units
+            self.oldUnits = units.copy()
             [unit.unitInit(units) for unit in self.troops]
 
     @property
@@ -170,13 +171,17 @@ class Company():
         return (self.flag.coords, self.flag.select, self.flag.attackMove,
                 self.flag.angle, self.flag.change)
 
+    @property
+    def health(self):
+        return sum(inf.size for inf in self.troops)
+
     def update(self):
         # move Company, update Infantry, panic if necessary
-        [unit.panic() for unit in self.troops if unit.panicTime != 0]
+        [unit.panic() for unit in self.troops if unit.panicTime > 0]
         for unit in self.troops:
             if unit.size <= 0:
                 self.troops.remove(unit)
-            elif unit.panicTime == 0:
+            elif unit.panicTime == -1:
                 unit.update()
 
     def follow(self, flags):
@@ -205,7 +210,7 @@ class Company():
             self.showOrders = 1
         if self.showOrders == 1 and not click:
             self.showOrders = 2
-            self.bayonetButton.draw(self.troops[0].coords)
+            self.bayonetButton.draw(coords)
             if self.formation == "Line":
                 self.carreButton.draw(buttonCoords)
                 self.lineButton.draw((-100, -100))
@@ -261,6 +266,10 @@ class Company():
             self.bayonetButton.blitme()
             self.carreButton.blitme()
             self.lineButton.blitme()
+            coords = self.troops[0].coords
+            healthCoords = (coords[0], coords[1] - FB_SIZE[1])
+            self.healthDisp.draw(healthCoords, str(self.health))
+            self.healthDisp.blitme()
         [infantry.blitme() for infantry in self.troops]
         self.flag.blitme()
 

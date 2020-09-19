@@ -1,18 +1,12 @@
 # import pygame
 import math
-from pygame.sprite import Group
 from cannon import Cannon
-from settings import C_SPEED, C_RANGE, C_MORALE, C_MORALE_MIN, C_SIGHT
-from settings import C_PANIC_TIME, C_PANIC_BAY, C_FIRE_ANGLE, C_GAPY
-from settings import CC_GAPX, CC_GAPY, C_MEN_PER, C_MIN_RANGE
+from settings import C_SIGHT, C_GAPY, FB_SIZE
 from settings import blueCannon, greenCannon
 from flag import Flag
-from pygame import time
 import pygame
-import random
 import numpy as np
 from button import Button
-from cannoneer import Cannoneer
 
 "click on any Cannon - bring up orders: canister, round shot, etc."
 
@@ -146,6 +140,7 @@ class Battery():
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
         # self.bayonetButton = Button(screen, "Bayonets")
+        self.healthDisp = Button(screen, str(self.health))
         self.play = play
         self.team = team
         self.oldUnits = []
@@ -168,13 +163,17 @@ class Battery():
         return (self.flag.coords, self.flag.select, self.flag.attackMove,
                 self.flag.angle, self.flag.change)
 
+    @property
+    def health(self):
+        return sum(inf.size for inf in self.troops)
+
     def update(self):
         # move Battery, update Cannons, panic if necessary
-        [can.panic() for can in self.troops if can.panicTime != 0]
+        [can.panic() for can in self.troops if can.panicTime > 0]
         for cannon in self.troops:
             if cannon.size <= 0:
                 self.troops.remove(cannon)
-            elif cannon.panicTime == 0:
+            elif cannon.panicTime == -1:
                 cannon.update()
 
     def follow(self, flags):
@@ -190,15 +189,14 @@ class Battery():
 
     def orders(self):
         # give orders other than move for Battery
-        if not self.play:
+        if not self.play or self.size == 0:
             return
-        cover = [self.flag.rect, self.flag.moveButton.rect,
-                 self.flag.attackButton.rect]
+        if self.flag.select != 0 or pygame.mouse.get_pressed()[2]:
+            self.showOrders = 0
         mouse = pygame.mouse.get_pos()
         click = pygame.mouse.get_pressed()[0]
-        if (click and self.showOrders == 0 and
-            any([cannon.rect.collidepoint(mouse) for cannon in self.troops])
-            and all([not rect.collidepoint(mouse) for rect in cover])):
+        touch = any([can.rect.collidepoint(mouse) for can in self.troops])
+        if click and self.showOrders == 0 and touch:
             self.showOrders = 1
         if self.showOrders == 1 and not click:
             self.showOrders = 2
@@ -233,7 +231,11 @@ class Battery():
         [cannon.blitme() for cannon in self.troops]
         if self.size > 0:
             self.flag.blitme()
-        # if self.showOrders > 1:
+        if self.showOrders > 1:
+            coords = self.troops[0].coords
+            healthCoords = (coords[0], coords[1] - FB_SIZE[1])
+            self.healthDisp.draw(healthCoords, str(self.health))
+            self.healthDisp.blitme()
             # self.bayonetButton.blitme()
         # [man.blitme() for man in self.troops]
 

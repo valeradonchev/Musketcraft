@@ -4,22 +4,23 @@ import pygame
 """
 # scale of game elements
 SCALE = .3  # size of sprites, speed, range
-SPEED = 1  # speed of movement, firing
+SPEED = 3  # speed of movement, firing
 # TOLER = .1  # distance from destination at which units stop
 # infantry settings
 I_GAPX = 70 * SCALE  # horizontal distance between centers of infantry
 I_GAPY = 70 * SCALE  # vertical distance between centers of infantry
 I_SPEED = .4 * SCALE * SPEED  # speed of infantry
-I_AIM = 1000 // SPEED  # aim time of infantry in millisec
-I_END_FIRE = 400 // SPEED  # time to end fire animation of infantry
-I_LOAD = 1000 // SPEED  # reload time of infantry in millisec
+# 1 run through code = 2 milliseconds
+I_AIM = 500 // SPEED  # aim time of infantry in code runs
+I_END_FIRE = 300 // SPEED  # time to end fire animation of infantry
+I_LOAD = 500 // SPEED  # reload time of infantry in code runs
 I_RANGE = 300 * SCALE  # range of infantry
 I_SIGHT = 350 * SCALE  # sight range of infantry
 I_CHANCE = 1  # infantry's base percent chance to hit
-I_DELAY = 100 // SPEED  # +/- range of random firing dealy
+I_DELAY = 50 // SPEED  # +/- range of random firing dealy
 I_MORALE = -10  # base morale - percent chance to flee
 I_MORALE_MIN = 25  # max percent chance to flee
-I_PANIC_TIME = 1000 // SPEED  # Time to panic
+I_PANIC_TIME = 500 // SPEED  # Time to panic
 I_PANIC_BAY = 1.5  # Factor of chance to panic from bayonets
 I_BAY_CHANCE = 60  # Percent chance to hit with bayonet
 I_FIRE_ANGLE = math.pi / 12
@@ -30,18 +31,18 @@ I_AMP_SHELLED = (I_MAX_SHELLED - I_MIN_SHELLED) / 2
 # Angle (in radians) within which infantry will fire
 # cannon settings
 C_GAPY = 100 * SCALE  # vertical distance between centers of cannon
-C_SPEED = .1 * SCALE * SPEED  # speed of cannon
-C_AIM = 1000 // SPEED  # aim time of cannon in millisec
-C_END_FIRE = 800 // SPEED  # time to end fire animation of cannon
-C_LOAD = 1000 // SPEED  # reload time of cannon in millisec
-C_RANGE = 1000 * SCALE  # range of cannon (SHOULD BE 15000)
+C_SPEED = 1 * SCALE * SPEED  # speed of cannon
+C_AIM = 500 // SPEED  # aim time of cannon in code runs
+C_END_FIRE = 400 // SPEED  # time to end fire animation of cannon
+C_LOAD = 500 // SPEED  # reload time of cannon in code runs
+C_RANGE = 1000 * SCALE  # range of cannon
 C_SIGHT = 1100 * SCALE  # sight range of cannon
 C_MIN_RANGE = 100 * SCALE  # Cannoneers flee from enemies at this distance
 C_ACCURACY = math.pi / 12  # variation in radians of projectile trajectory
-C_DELAY = 300 // SPEED  # +/- range of random firing dealy
+C_DELAY = 150 // SPEED  # +/- range of random firing dealy
 C_MORALE = -10  # base morale - percent chance to flee
 C_MORALE_MIN = 25  # max percent chance to flee
-C_PANIC_TIME = 1000 // SPEED  # Time to panic
+C_PANIC_TIME = 500 // SPEED  # Time to panic
 C_PANIC_BAY = 1.5  # Factor of chance to panic from bayonets
 C_FIRE_ANGLE = math.pi / 12
 C_MAX_SHELLED = 1  # largest number of units Cannon can lose per cannon
@@ -59,7 +60,7 @@ CB_MULT = 1.2  # extra mult for how far Cannonball travels
 # cavalry settings
 CV_GAPX = 70 * SCALE  # horizontal distance between centers of cavalry
 CV_GAPY = 70 * SCALE  # vertical distance between centers of cavalry
-CV_SPEED = 1 * SCALE * SPEED  # speed of cavalry
+CV_SPEED = 10 * SCALE * SPEED  # speed of cavalry
 CV_ACCEL = .3 * SCALE * SPEED  # rate at which cavalry in a charge accelerates
 CV_ANTI_CAV = 50  # percent chance of cavalry to die when they hit bayonets
 CV_AIM = 100 // SPEED  # aim time of cavalry in millisec

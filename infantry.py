@@ -8,10 +8,16 @@ from pygame.sprite import Sprite
 from pygame import time
 import random
 import numpy as np
+"decouple cavalry charge from time"
+"Cannon targetting acting weird"
+"AI charges bayonets vs. cannons, high morale"
+"optimization - check for changes before checking distance"
 "set SPEED"
-"add cavalry, blue cannons"
-"events"
+"add blue cavalry"
+"add events"
 
+"experiment - tick-based speed?"
+"button size color"
 "AI retreat"
 "troops can't move through each other"
 "review numbers - smaller ranges, fire rate"
@@ -182,10 +188,10 @@ class Infantry(Sprite):
         self.bayonets = False
         self.targetxy = np.array([-1, -1], dtype=float)
         self.target = None
-        self.aimedOn = 0
-        self.firedOn = 0
+        self.aimedOn = -1
+        self.firedOn = -1
         self.panicAngle = 0
-        self.panicTime = 0
+        self.panicTime = -1
         self.formation = "Line"
         self.maxSize = size
         self.size = size
@@ -327,7 +333,7 @@ class Infantry(Sprite):
         enemyDist = self.distanceMany([grp.coords for grp in self.enemies])
         for target, d in zip(self.enemies, enemyDist):
             seen = d <= I_SIGHT
-            panic = target.panicTime != 0
+            panic = target.panicTime > 0
             allow = seen and target.size > 0 and self.allowShoot and not panic
             closer = self.target is None
             closer = closer or d < self.distance(self.target.coords)
@@ -346,7 +352,7 @@ class Infantry(Sprite):
         self.lookAt(self.target.coords)
         toTarget = self.distance(self.target.coords)
         dead = self.target.size == 0 or self.target not in self.enemies
-        dead = dead or self.target.panicTime != 0
+        dead = dead or self.target.panicTime > 0
         if toTarget > I_SIGHT or dead or not self.allowShoot:
             self.target = None
             self.stop()
@@ -371,29 +377,32 @@ class Infantry(Sprite):
         self.angle = self.panicAngle
         self.setSpeed(I_SPEED)
         self.update()
-        if time.get_ticks() - self.panicTime > I_PANIC_TIME:
+        self.panicTime -= 1
+        if self.panicTime == 0:
             self.size = 0
 
     def startPanic(self):
         # set direction Infantry moves away in when panicking
         self.target = None
         self.panicAngle = self.angle + math.pi * random.uniform(.75, 1.25)
-        self.panicTime = time.get_ticks()
+        self.panicTime = I_PANIC_TIME
 
     def fire(self):
         # fire when target isn't None, reload after firing
         outrange = self.target is None
         outrange = outrange or self.distance(self.target.coords) > self.range
         if not self.allowShoot or outrange:
-            self.aimedOn = 0
-        if self.aimedOn == 0 and self.target is not None and self.firedOn == 0:
-            self.aimedOn = time.get_ticks() + random.randint(-I_DELAY, I_DELAY)
-        if self.aimedOn != 0 and time.get_ticks() - self.aimedOn > I_AIM:
+            self.aimedOn = -1
+        if self.aimedOn == -1 and self.target is not None and self.firedOn == -1:
+            self.aimedOn = I_AIM + random.randint(-I_DELAY, I_DELAY)
+        if self.aimedOn > 0:
+            self.aimedOn -= 1
+        if self.aimedOn == 0:
             dist = self.distance(self.target.coords)
             if self.costume != self.carre:
                 self.costume = self.firing
-            self.firedOn = time.get_ticks()
-            self.aimedOn = 0
+            self.firedOn = I_LOAD
+            self.aimedOn = -1
             chance = I_CHANCE * I_RANGE / dist
             # * max(1, self.target.size // 3)
             if dist < I_SPEED:
@@ -402,17 +411,17 @@ class Infantry(Sprite):
             hits = np.random.binomial(self.size, min(chance / 100, 1))
             # if random.randint(0, 99) < chance:
             self.target.getHit(hits, self.bayonets)
-        if self.firedOn != 0 and time.get_ticks() - self.firedOn > I_END_FIRE:
+        if self.firedOn > -1:
+            self.firedOn -= 1
+        if self.firedOn + I_END_FIRE == I_LOAD:
             if self.costume != self.carre:
                 self.costume = self.line
-        if self.firedOn != 0 and time.get_ticks() - self.firedOn > I_LOAD:
-            self.firedOn = 0
 
     def getHit(self, hits, bayonet=False):
         # reduce size by number of hits
         self.size -= hits
         morale = self.morale * I_PANIC_BAY ** bayonet
-        if random.randint(0, 99) < morale and self.panicTime == 0:
+        if random.randint(0, 99) < morale and self.panicTime == -1:
             self.startPanic()
         # print(self.size)
 

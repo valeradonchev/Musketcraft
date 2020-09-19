@@ -1,12 +1,9 @@
 # import pygame
 import math
 from cavalry import Cavalry
-from settings import CV_SPEED, CV_MORALE, CV_MORALE_MIN, CV_FIRE_ANGLE
-from settings import CV_PANIC_TIME, CV_PANIC_BAY, CV_GAPX, CV_GAPY, CV_SIGHT
-from settings import CV_ANTI_CAV, CV_ACCEL, CV_RANGE
+from settings import CV_GAPX, CV_GAPY, CV_SIGHT, FB_SIZE
 from settings import blueCav, greenCav
 from flag import Flag
-from pygame import time
 import pygame
 import random
 import numpy as np
@@ -143,6 +140,7 @@ class Squadron():
         # 0,1=click,release to show buttons, 2,3=click,release to select
         self.showOrders = 0
         # self.bayonetButton = Button(screen, "Bayonets")
+        self.healthDisp = Button(screen, str(self.health))
         # self.bayonets = False
         self.play = play
         self.team = team
@@ -166,13 +164,17 @@ class Squadron():
         return (self.flag.coords, self.flag.select, self.flag.attackMove,
                 self.flag.angle, self.flag.change)
 
+    @property
+    def health(self):
+        return sum(inf.size for inf in self.troops)
+
     def update(self):
         # move Squadron, update Cavalry, panic if necessary
-        [unit.panic() for unit in self.troops if unit.panicTime != 0]
+        [unit.panic() for unit in self.troops if unit.panicTime > 0]
         for unit in self.troops:
             if unit.size <= 0:
                 self.troops.remove(unit)
-            elif unit.panicTime == 0:
+            elif unit.panicTime == -1:
                 unit.update()
 
     def follow(self, flags):
@@ -188,15 +190,14 @@ class Squadron():
 
     def orders(self):
         # give orders other than move for Squadron
-        if not self.play:
+        if not self.play or self.size == 0:
             return
-        cover = [self.flag.rect, self.flag.moveButton.rect,
-                 self.flag.attackButton.rect]
+        if self.flag.select != 0 or pygame.mouse.get_pressed()[2]:
+            self.showOrders = 0
         mouse = pygame.mouse.get_pos()
         click = pygame.mouse.get_pressed()[0]
-        if (click and self.showOrders == 0 and
-            any([infantry.rect.collidepoint(mouse) for infantry in self.troops]) and
-            all([not rect.collidepoint(mouse) for rect in cover])):
+        touch = any([inf.rect.collidepoint(mouse) for inf in self.troops])
+        if click and self.showOrders == 0 and touch:
             self.showOrders = 1
         if self.showOrders == 1 and not click:
             self.showOrders = 2
@@ -231,7 +232,11 @@ class Squadron():
         [unit.blitme() for unit in self.troops]
         if self.size > 0:
             self.flag.blitme()
-        # if self.showOrders > 1:
+        if self.showOrders > 1:
+            coords = self.troops[0].coords
+            healthCoords = (coords[0], coords[1] - FB_SIZE[1])
+            self.healthDisp.draw(healthCoords, str(self.health))
+            self.healthDisp.blitme()
             # self.bayonetButton.blitme()
 
     def __str__(self):
